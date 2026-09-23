@@ -15,7 +15,7 @@ export const REFRESH_TOKEN_COOKIE = "ledger_refresh_token";
  */
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
-const COOKIE_OPTIONS = {
+export const COOKIE_OPTIONS = {
   // Neither token is readable from JavaScript, so an XSS bug cannot steal them.
   httpOnly: true,
   // Development runs over plain http, where a Secure cookie would be dropped.
@@ -31,6 +31,59 @@ export type Session = {
   accessToken: string;
   refreshToken: string;
 };
+
+export type AccessTokenClaims = {
+  /** The user id, which /api/auth/refresh-token requires alongside the token. */
+  sub: string;
+  /** Expiry, in seconds since the epoch. */
+  exp: number;
+  /** The username. */
+  unique_name?: string;
+};
+
+/**
+ * Reads the payload without verifying the signature. Safe here because nothing
+ * is trusted on the strength of it: the claims only decide when to refresh and
+ * what name to display. Every request that matters is re-verified by the
+ * backend, which rejects a token it did not sign.
+ */
+export function readAccessTokenClaims(token: string): AccessTokenClaims | null {
+  const payload = token.split(".")[1];
+
+  if (!payload) {
+    return null;
+  }
+
+  try {
+    const claims: unknown = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8"),
+    );
+
+    if (
+      typeof claims !== "object" ||
+      claims === null ||
+      typeof (claims as AccessTokenClaims).sub !== "string" ||
+      typeof (claims as AccessTokenClaims).exp !== "number"
+    ) {
+      return null;
+    }
+
+    return claims as AccessTokenClaims;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Treats a token expiring within the skew window as already expired, so a
+ * request does not set off mid-flight against a backend with ClockSkew zero.
+ */
+export function isAccessTokenExpired(
+  claims: AccessTokenClaims,
+  skewSeconds = 30,
+): boolean {
+  return claims.exp * 1000 <= Date.now() + skewSeconds * 1000;
+}
 
 /** Only callable from a Server Action or Route Handler. */
 export async function createSession(tokens: TokenResponse): Promise<void> {

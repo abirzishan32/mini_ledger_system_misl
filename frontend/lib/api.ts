@@ -73,6 +73,20 @@ export async function apiFetch<T>(
   );
 }
 
+/**
+ * Trades a refresh token for a new pair. The backend identifies the session by
+ * user id as well as token, and the id comes from the access token's `sub`.
+ */
+export async function refreshTokens(
+  userId: string,
+  refreshToken: string,
+): Promise<ApiResponse<TokenResponse>> {
+  return apiFetch<TokenResponse>("/api/auth/refresh-token", {
+    method: "POST",
+    body: JSON.stringify({ userId, refreshToken }),
+  });
+}
+
 function failure<T>(statusCode: number, message: string): ApiResponse<T> {
   return {
     success: false,

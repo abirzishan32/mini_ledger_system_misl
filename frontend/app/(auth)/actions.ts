@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { apiFetch, type TokenResponse, type UserRead } from "@/lib/api";
-import { createSession } from "@/lib/auth";
+import { clearSession, createSession } from "@/lib/auth";
 import type { AuthFormState } from "./form-state";
 
 export async function login(
@@ -77,6 +77,16 @@ export async function register(
   await createSession(signIn.data);
 
   redirect("/dashboard");
+}
+
+/**
+ * Clears the cookies only. The refresh token stays valid at the backend until
+ * it expires or is rotated, because there is no revoke endpoint to call.
+ */
+export async function signOut(): Promise<void> {
+  await clearSession();
+
+  redirect("/login");
 }
 
 function readField(formData: FormData, name: string): string {
