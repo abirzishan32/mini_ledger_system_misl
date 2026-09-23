@@ -44,6 +44,34 @@ namespace backend.Controllers
                 account, StatusCodes.Status200OK, "Account retrieved"));
         }
 
+        /// <summary>
+        /// Routed before the id endpoints only in the sense that "trial-balance" can
+        /// never match the :guid constraint on those, so the two cannot collide.
+        /// </summary>
+        [HttpGet("trial-balance")]
+        public async Task<ActionResult<ApiResponse<TrialBalanceDto>>> GetTrialBalance()
+        {
+            var trialBalance = await _accountService.GetTrialBalance(User.GetUserId());
+
+            return Ok(ApiResponse<TrialBalanceDto>.SuccessResponse(
+                trialBalance, StatusCodes.Status200OK, "Trial balance calculated"));
+        }
+
+        [HttpGet("{id:guid}/entries")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<AccountLedgerEntryDto>>>> GetAccountLedger(Guid id)
+        {
+            var ledger = await _accountService.GetAccountLedger(User.GetUserId(), id);
+
+            if (ledger == null)
+            {
+                return NotFound(ApiResponse<IReadOnlyList<AccountLedgerEntryDto>>.ErrorResponse(
+                    "Account not found", StatusCodes.Status404NotFound));
+            }
+
+            return Ok(ApiResponse<IReadOnlyList<AccountLedgerEntryDto>>.SuccessResponse(
+                ledger, StatusCodes.Status200OK, "Account ledger retrieved"));
+        }
+
         [HttpPost]
         public async Task<ActionResult<ApiResponse<AccountReadDto>>> CreateAccount([FromBody] AccountWriteDto request)
         {

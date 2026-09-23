@@ -11,5 +11,9 @@ namespace backend.Interfaces
         Task<AccountReadDto?> CreateAccount(Guid ownerId, AccountWriteDto request);
 
         Task<AccountReadDto?> RenameAccount(Guid ownerId, Guid accountId, AccountUpdateDto request);
+
+        Task<IReadOnlyList<AccountLedgerEntryDto>?> GetAccountLedger(Guid ownerId, Guid accountId);
+
+        Task<TrialBalanceDto> GetTrialBalance(Guid ownerId);
     }
 }

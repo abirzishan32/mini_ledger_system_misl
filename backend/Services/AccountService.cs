@@ -51,13 +51,11 @@ namespace backend.Services
             }
             catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
             {
-                // The unique index on (OwnerId, Name) decides this, not a pre-insert
-                // check, which two concurrent requests can both pass.
+
                 return null;
             }
 
-            // A freshly created account has no entries, so the balance is zero; going
-            // back to the database to prove that would be a wasted round trip.
+
             return _mapper.Map<AccountReadDto>(account);
         }
 
@@ -86,6 +84,65 @@ namespace backend.Services
         }
 
        
+        public async Task<IReadOnlyList<AccountLedgerEntryDto>?> GetAccountLedger(Guid ownerId, Guid accountId)
+        {
+            // Checked separately so "account has no entries" stays distinguishable
+            // from "no such account": both would otherwise be an empty list.
+            if (!await OwnedBy(ownerId).AnyAsync(account => account.Id == accountId))
+            {
+                return null;
+            }
+
+            // ponytail: loads the whole history. A running balance depends on every
+            // earlier row, so paging this needs the opening balance fetched as a
+            // separate SUM. Do that if accounts ever get large.
+            var ledger = await _appDbContext.Entries
+                .Where(entry => entry.AccountId == accountId)
+                .OrderBy(entry => entry.Transaction.OccurredAt)
+                .ThenBy(entry => entry.Transaction.CreatedAt)
+                .ProjectTo<AccountLedgerEntryDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            var runningBalance = 0m;
+
+            foreach (var line in ledger)
+            {
+                runningBalance += line.Amount;
+                line.RunningBalance = runningBalance;
+            }
+
+            return ledger;
+        }
+
+        public async Task<TrialBalanceDto> GetTrialBalance(Guid ownerId)
+        {
+            // Reuses the listing, which already computes every balance in one query.
+            // A second aggregation here would be a second definition of "balance".
+            var accounts = await GetAccounts(ownerId);
+
+            var lines = accounts
+                .Select(account => new TrialBalanceLineDto
+                {
+                    AccountId = account.Id,
+                    AccountName = account.Name,
+                    Type = account.Type,
+                    Debit = account.Balance > 0 ? account.Balance : 0m,
+                    Credit = account.Balance < 0 ? -account.Balance : 0m
+                })
+                .ToList();
+
+            var totalDebits = lines.Sum(line => line.Debit);
+            var totalCredits = lines.Sum(line => line.Credit);
+
+            return new TrialBalanceDto
+            {
+                Lines = lines,
+                TotalDebits = totalDebits,
+                TotalCredits = totalCredits,
+                IsBalanced = totalDebits == totalCredits
+            };
+        }
+
         private IQueryable<Account> OwnedBy(Guid ownerId) =>
             _appDbContext.Accounts.Where(account => account.OwnerId == ownerId);
     }
