@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using backend.Controllers;
 using backend.Data;
@@ -14,7 +15,11 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+// Enums cross the wire as their names, not their ordinals: "Asset" rather than 0.
+// Self-describing for the client, and immune to the enum being reordered later.
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
@@ -45,6 +50,7 @@ builder.Services.AddSwaggerGen(options =>
 var connectionString = builder.Configuration.Require("ConnectionStrings:DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
 
 var jwtKey = builder.Configuration.Require("AppSettings:Token");
 

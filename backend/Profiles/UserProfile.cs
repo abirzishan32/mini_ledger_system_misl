@@ -8,9 +8,6 @@ namespace backend.Profiles
     {
         public UserProfile()
         {
-            // Only the outbound projection: it is what keeps PasswordHash and
-            // RefreshTokenHash off the wire. Building a User from UserWriteDto is one
-            // assignment plus a hash, which the service does directly.
             CreateMap<User, UserReadDto>();
         }
     }
