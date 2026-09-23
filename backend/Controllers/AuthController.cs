@@ -95,18 +95,10 @@ namespace backend.Controllers
             return Ok(ApiResponse<string>.SuccessResponse(username, StatusCodes.Status200OK, "You are authenticated"));
         }
 
-        /// <summary>
-        /// One message per field, not one per failed attribute. An empty field trips
-        /// both [Required] and the length or format rule, and reporting "Email is
-        /// required" alongside "Email must be a valid email address" tells the user
-        /// nothing extra while making the list twice as long. The first message is
-        /// the most specific thing the user needs to act on.
-        /// </summary>
         private List<string> GetModelStateErrors() =>
-            ModelState
-                .Where(entry => entry.Value is { Errors.Count: > 0 })
-                .Select(entry => entry.Value!.Errors[0].ErrorMessage)
-                .Select(message => string.IsNullOrWhiteSpace(message) ? "Invalid request body" : message)
+            ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage) ? "Invalid request body" : e.ErrorMessage)
                 .ToList();
     }
 }
