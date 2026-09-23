@@ -43,7 +43,9 @@ namespace backend.Services
 
         public async Task<UserReadDto?> RegisterUser(UserWriteDto request)
         {
-            if (await _appDbContext.Users.AnyAsync(u => u.Username == request.Username))
+            // Both comparisons are case-insensitive because the columns are citext.
+            if (await _appDbContext.Users.AnyAsync(u =>
+                    u.Username == request.Username || u.Email == request.Email))
             {
                 return null;
             }
@@ -51,6 +53,7 @@ namespace backend.Services
             var newUser = new User
             {
                 Username = request.Username,
+                Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 CreatedAt = DateTime.UtcNow
             };
@@ -63,15 +66,15 @@ namespace backend.Services
             }
             catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
             {
-                // Two concurrent registrations passed the AnyAsync check above; the
-                // unique index on Username is what actually decides the winner.
+                // Two concurrent registrations both passed the check above; the unique
+                // indexes on Username and Email decide the winner.
                 return null;
             }
 
             return _mapper.Map<UserReadDto>(newUser);
         }
 
-        public async Task<TokenResponseDto?> LoginUser(UserWriteDto request)
+        public async Task<TokenResponseDto?> LoginUser(LoginRequestDto request)
         {
             var user = await _appDbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
 

@@ -13,17 +13,15 @@ export async function login(
   const username = readField(formData, "username").trim();
   const password = readField(formData, "password");
 
-  if (!username || !password) {
-    return { message: "Enter your username and password.", errors: [], username };
-  }
-
+  // No local presence check: LoginRequestDto already declares both fields
+  // required, and its messages are the ones the user should see.
   const result = await apiFetch<TokenResponse>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({ username, password }),
   });
 
   if (!result.success || !result.data) {
-    return { message: result.message, errors: result.errors ?? [], username };
+    return { message: result.message, errors: result.errors ?? [], username, email: "" };
   }
 
   await createSession(result.data);
@@ -38,26 +36,25 @@ export async function register(
   formData: FormData,
 ): Promise<AuthFormState> {
   const username = readField(formData, "username").trim();
+  const email = readField(formData, "email").trim();
   const password = readField(formData, "password");
   const confirmPassword = readField(formData, "confirmPassword");
 
-  if (!username || !password) {
-    return { message: "Choose a username and password.", errors: [], username };
-  }
-
-  // Checked here rather than only in the browser: there is no password reset,
-  // so a typo would lock the account out permanently.
-  if (password !== confirmPassword) {
-    return { message: "The two passwords do not match.", errors: [], username };
-  }
-
+  // Every rule, including the two passwords matching, is declared on
+  // UserWriteDto. Nothing is validated here, so there is one place to change a
+  // rule and no way for the two ends to disagree.
   const created = await apiFetch<UserRead>("/api/auth/register", {
     method: "POST",
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, email, password, confirmPassword }),
   });
 
   if (!created.success) {
-    return { message: created.message, errors: created.errors ?? [], username };
+    return {
+      message: created.message,
+      errors: created.errors ?? [],
+      username,
+      email,
+    };
   }
 
   // Registration returns the new user, not tokens, so sign in to get a session.
@@ -71,6 +68,7 @@ export async function register(
       message: "Your account was created, but signing in failed. Please sign in.",
       errors: signIn.errors ?? [],
       username,
+      email,
     };
   }
 

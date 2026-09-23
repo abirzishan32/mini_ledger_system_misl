@@ -35,7 +35,8 @@ export function LoginForm() {
         </CardDescription>
       </CardHeader>
 
-      <form action={formAction}>
+      {/* See register-form: the backend's LoginRequestDto owns the rules. */}
+      <form action={formAction} noValidate>
         <CardContent className="space-y-5">
           <FormAlert message={state.message} errors={state.errors} />
 
@@ -52,7 +53,6 @@ export function LoginForm() {
               defaultValue={state.username}
               autoComplete="username"
               autoFocus
-              required
               disabled={pending}
             />
           </div>
@@ -63,7 +63,6 @@ export function LoginForm() {
               id="password"
               name="password"
               autoComplete="current-password"
-              required
               disabled={pending}
             />
           </div>

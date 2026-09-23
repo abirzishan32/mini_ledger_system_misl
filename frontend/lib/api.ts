@@ -21,6 +21,7 @@ export type TokenResponse = {
 export type UserRead = {
   id: string;
   username: string;
+  email: string;
   createdAt: string;
 };
 

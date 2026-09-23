@@ -26,10 +26,16 @@ namespace backend.Data
                 user.Property(u => u.Username).HasColumnType("citext").IsRequired();
                 user.ToTable(t => t.HasCheckConstraint("CK_Users_Username_Length", "char_length(\"Username\") BETWEEN 3 AND 50"));
 
+                // Email is citext for the same reason as Username: addresses are
+                // treated case-insensitively in practice, so "A@b.com" must not be
+                // able to register alongside "a@b.com".
+                user.Property(u => u.Email).HasColumnType("citext").IsRequired();
+
                 user.Property(u => u.PasswordHash).IsRequired();
 
                 // The registration check alone cannot stop two concurrent signups.
                 user.HasIndex(u => u.Username).IsUnique();
+                user.HasIndex(u => u.Email).IsUnique();
             });
         }
     }
