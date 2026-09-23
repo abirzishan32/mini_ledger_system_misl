@@ -51,6 +51,7 @@ var connectionString = builder.Configuration.Require("ConnectionStrings:DefaultC
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 
 var jwtKey = builder.Configuration.Require("AppSettings:Token");
 
