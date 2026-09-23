@@ -1,5 +1,6 @@
 using System.Text;
 using backend.Data;
+using backend.Extensions;
 using backend.Interfaces;
 using backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -43,11 +44,11 @@ builder.Services.AddSwaggerGen(options =>
 
 // Secrets live in user-secrets (dev) or environment variables (ConnectionStrings__DefaultConnection,
 // AppSettings__Token) -- never in appsettings.json, which is committed.
-var connectionString = Require(builder.Configuration.GetConnectionString("DefaultConnection"), "ConnectionStrings:DefaultConnection");
+var connectionString = builder.Configuration.Require("ConnectionStrings:DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-var jwtKey = Require(builder.Configuration["AppSettings:Token"], "AppSettings:Token");
+var jwtKey = builder.Configuration.Require("AppSettings:Token");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -60,8 +61,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             // Required here too: a null ValidIssuer with ValidateIssuer = true rejects
             // every token at request time instead of failing at startup.
-            ValidIssuer = Require(builder.Configuration["AppSettings:Issuer"], "AppSettings:Issuer"),
-            ValidAudience = Require(builder.Configuration["AppSettings:Audience"], "AppSettings:Audience"),
+            ValidIssuer = builder.Configuration.Require("AppSettings:Issuer"),
+            ValidAudience = builder.Configuration.Require("AppSettings:Audience"),
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             // Default is 5 minutes, which would stretch a 15-minute access token to 20.
             ClockSkew = TimeSpan.Zero
@@ -87,9 +88,3 @@ app.UseAuthorization(); // Without this, [Authorize] endpoints throw instead of 
 app.MapControllers();
 
 app.Run();
-
-static string Require(string? value, string key) =>
-    string.IsNullOrWhiteSpace(value)
-        ? throw new InvalidOperationException(
-            $"Missing configuration value '{key}'. Set it with: dotnet user-secrets set \"{key}\" \"<value>\"")
-        : value;

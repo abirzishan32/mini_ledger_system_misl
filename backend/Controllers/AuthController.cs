@@ -89,7 +89,7 @@ namespace backend.Controllers
 
         [HttpGet("me")]
         [Authorize]
-        public ActionResult<ApiResponse<string>> AuthenticatedOnlyEndpoint()
+        public ActionResult<ApiResponse<string>> Me()
         {
             var username = User.FindFirstValue(ClaimTypes.Name) ?? string.Empty;
             return Ok(ApiResponse<string>.SuccessResponse(username, StatusCodes.Status200OK, "You are authenticated"));

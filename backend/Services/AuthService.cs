@@ -5,6 +5,7 @@ using AutoMapper;
 using backend.Data;
 using backend.DTOs;
 using backend.Entities;
+using backend.Extensions;
 using backend.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -34,10 +35,10 @@ namespace backend.Services
             _appDbContext = appDbContext;
             _mapper = mapper;
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Required(configuration, "AppSettings:Token")));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.Require("AppSettings:Token")));
             _signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
-            _issuer = Required(configuration, "AppSettings:Issuer");
-            _audience = Required(configuration, "AppSettings:Audience");
+            _issuer = configuration.Require("AppSettings:Issuer");
+            _audience = configuration.Require("AppSettings:Audience");
         }
 
         public async Task<UserReadDto?> RegisterUser(UserWriteDto request)
@@ -173,14 +174,6 @@ namespace backend.Services
             };
 
             return TokenHandler.CreateToken(descriptor);
-        }
-
-        private static string Required(IConfiguration configuration, string key)
-        {
-            var value = configuration[key];
-            return string.IsNullOrWhiteSpace(value)
-                ? throw new InvalidOperationException($"Missing configuration value '{key}'.")
-                : value;
         }
     }
 }
