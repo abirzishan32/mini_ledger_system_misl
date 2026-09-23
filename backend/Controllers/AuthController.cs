@@ -71,6 +71,22 @@ namespace backend.Controllers
             return Ok(ApiResponse<TokenResponseDto>.SuccessResponse(result, StatusCodes.Status200OK, "Token refreshed successfully"));
         }
 
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<string>>> Logout()
+        {
+            // The access token already proved who the caller is, so nothing is read
+            // from the body: a caller can only ever revoke their own session.
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            {
+                return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid access token", StatusCodes.Status401Unauthorized));
+            }
+
+            await _authService.Logout(userId);
+
+            return Ok(ApiResponse<string>.SuccessResponse(string.Empty, StatusCodes.Status200OK, "Signed out successfully"));
+        }
+
         [HttpGet("me")]
         [Authorize]
         public ActionResult<ApiResponse<string>> AuthenticatedOnlyEndpoint()

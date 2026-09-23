@@ -95,6 +95,21 @@ namespace backend.Services
             return await IssueTokens(user);
         }
 
+        
+        public async Task Logout(Guid userId)
+        {
+            var user = await _appDbContext.Users.FindAsync(userId);
+
+            if (user == null)
+            {
+                return;
+            }
+
+            user.RefreshTokenHash = null;
+            user.RefreshTokenExpiryTime = null;
+            await _appDbContext.SaveChangesAsync();
+        }
+
         // Rotates the refresh token on every issue, so a used token cannot be replayed.
         private async Task<TokenResponseDto> IssueTokens(User user)
         {

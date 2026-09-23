@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { apiFetch, type TokenResponse, type UserRead } from "@/lib/api";
-import { clearSession, createSession } from "@/lib/auth";
+import { clearSession, createSession, getSession } from "@/lib/auth";
 import type { AuthFormState } from "./form-state";
 
 export async function login(
@@ -79,11 +79,20 @@ export async function register(
   redirect("/dashboard");
 }
 
-/**
- * Clears the cookies only. The refresh token stays valid at the backend until
- * it expires or is rotated, because there is no revoke endpoint to call.
- */
 export async function signOut(): Promise<void> {
+  const session = await getSession();
+
+  if (session) {
+    // Best effort. The cookies are dropped either way, but revoking server-side
+    // is what stops a captured refresh token from minting new sessions for the
+    // rest of its seven days. apiFetch resolves its own failures, so a backend
+    // that is down cannot strand the user in a signed-in state.
+    await apiFetch("/api/auth/logout", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session.accessToken}` },
+    });
+  }
+
   await clearSession();
 
   redirect("/login");
