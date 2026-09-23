@@ -20,6 +20,10 @@ logs/
 .env.*.local
 secrets.json
 appsettings.Development.json
+# Local overrides only. appsettings.json itself is committed and must stay
+# secret-free: the JWT key and connection string come from user-secrets (dev)
+# or AppSettings__Token / ConnectionStrings__DefaultConnection (deployed).
+appsettings.*.local.json
 
 # Packages and generated code
 packages/
@@ -36,3 +40,4 @@ Dockerfile.*
 *.db
 *.sqlite
 *.sqlite3
+

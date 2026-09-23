@@ -1,38 +1,95 @@
+using System.Text;
 using backend.Data;
+using backend.Interfaces;
+using backend.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// [controller] would otherwise publish /api/Auth; routing matches either case but the
+// OpenAPI document should agree with the documented URLs.
+builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
+// [ApiController] normally short-circuits invalid models with its own ProblemDetails
+// response, which would bypass the ModelState checks in AuthController and return a
+// body that is not an ApiResponse<T>. Turning it off keeps one response shape.
+builder.Services.Configure<ApiBehaviorOptions>(options => options.SuppressModelStateInvalidFilter = true);
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "Paste the access token only (Swagger adds the \"Bearer \" prefix).",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+    options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecuritySchemeReference("Bearer"),
+            new List<string>()
+        }
+    });
+});
+
+// Secrets live in user-secrets (dev) or environment variables (ConnectionStrings__DefaultConnection,
+// AppSettings__Token) -- never in appsettings.json, which is committed.
+var connectionString = Require(builder.Configuration.GetConnectionString("DefaultConnection"), "ConnectionStrings:DefaultConnection");
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+var jwtKey = Require(builder.Configuration["AppSettings:Token"], "AppSettings:Token");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            // Required here too: a null ValidIssuer with ValidateIssuer = true rejects
+            // every token at request time instead of failing at startup.
+            ValidIssuer = Require(builder.Configuration["AppSettings:Issuer"], "AppSettings:Issuer"),
+            ValidAudience = Require(builder.Configuration["AppSettings:Audience"], "AppSettings:Audience"),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            // Default is 5 minutes, which would stretch a 15-minute access token to 20.
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly);
 
-
 var app = builder.Build();
 
-// When we are in development mode (building the api), we want to enable the Swagger UI so that we can test our endpoints and see the OpenAPI documentation.
-if(app.Environment.IsDevelopment())
+// Swagger UI is the only OpenAPI surface here, and only in development.
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger(); // When we use "Use", this is a middleware
     app.UseSwaggerUI();
 }
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization(); // Without this, [Authorize] endpoints throw instead of returning 401.
+app.MapControllers();
 
 app.Run();
 
+static string Require(string? value, string key) =>
+    string.IsNullOrWhiteSpace(value)
+        ? throw new InvalidOperationException(
+            $"Missing configuration value '{key}'. Set it with: dotnet user-secrets set \"{key}\" \"<value>\"")
+        : value;

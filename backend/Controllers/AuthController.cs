@@ -1,77 +1,88 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using backend.DTOs;
-using backend.Entities;
-using BCrypt.Net;
 using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using backend.DTOs;
+using backend.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers
 {
     [ApiController] // This attribute indicates that this class is an API controller, which means it will handle HTTP requests and return responses in a web API context.
     [Route("api/[controller]")] // Define the common path for all endpoints in this controller
-    public class AuthController(IConfiguration configuration) : ControllerBase
+    public class AuthController : ControllerBase
     {
-        public static User user = new User(); 
+        private readonly IAuthService _authService;
 
+        public AuthController(IAuthService authService)
+        {
+            _authService = authService;
+        }
 
         [HttpPost("register")]
-        public ActionResult<User> Register(UserDto request)
+        public async Task<ActionResult<ApiResponse<UserReadDto>>> Register([FromBody] UserWriteDto request)
         {
-            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ApiResponse<UserReadDto>.ErrorResponse("Validation failed", StatusCodes.Status400BadRequest, GetModelStateErrors()));
+            }
 
-            user.Username = request.Username;
-            user.PasswordHash = hashedPassword;
+            var user = await _authService.RegisterUser(request);
+            if (user == null)
+            {
+                return Conflict(ApiResponse<UserReadDto>.ErrorResponse("Username already exists", StatusCodes.Status409Conflict));
+            }
 
-            return Created($"/api/auth/register", ApiResponse<UserDto>.SuccessResponse(user, 201, "User registered successfully"));
-
+            return StatusCode(
+                StatusCodes.Status201Created,
+                ApiResponse<UserReadDto>.SuccessResponse(user, StatusCodes.Status201Created, "User registered successfully"));
         }
 
         [HttpPost("login")]
-        public ActionResult<User> Login(UserDto request)
+        public async Task<ActionResult<ApiResponse<TokenResponseDto>>> Login([FromBody] UserWriteDto request)
         {
-            if(user.Username != request.Username)
+            if (!ModelState.IsValid)
             {
-                return NotFound(ApiResponse<UserDto>.ErrorResponse("User not found", 404));
+                return BadRequest(ApiResponse<TokenResponseDto>.ErrorResponse("Validation failed", StatusCodes.Status400BadRequest, GetModelStateErrors()));
             }
 
-            if(!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            var response = await _authService.LoginUser(request);
+            if (response == null)
             {
-                return Unauthorized(ApiResponse<UserDto>.ErrorResponse("Invalid password", 401));
+                // Same message for unknown user and wrong password: do not leak which usernames exist.
+                return Unauthorized(ApiResponse<TokenResponseDto>.ErrorResponse("Invalid username or password", StatusCodes.Status401Unauthorized));
             }
 
-            string token = CreateToken(user);
-            return Ok(ApiResponse<string>.SuccessResponse(token, 200, "Login successful"));
+            return Ok(ApiResponse<TokenResponseDto>.SuccessResponse(response, StatusCodes.Status200OK, "Login successful"));
         }
 
-
-        private string CreateToken(User user)
+        [HttpPost("refresh-token")]
+        public async Task<ActionResult<ApiResponse<TokenResponseDto>>> RefreshToken([FromBody] RefreshTokenRequestDto request)
         {
-            var claims = new List<Claim>
+            if (!ModelState.IsValid)
             {
-                new Claim(ClaimTypes.Name, user.Username)
-            };
+                return BadRequest(ApiResponse<TokenResponseDto>.ErrorResponse("Validation failed", StatusCodes.Status400BadRequest, GetModelStateErrors()));
+            }
 
+            var result = await _authService.RefreshToken(request);
+            if (result == null)
+            {
+                return Unauthorized(ApiResponse<TokenResponseDto>.ErrorResponse("Invalid or expired refresh token", StatusCodes.Status401Unauthorized));
+            }
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetValue<string>("AppSettings:Token")!));
-
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
-
-            var tokenDescriptor = new JwtSecurityToken(
-                issuer: configuration.GetValue<string>("AppSettings:Issuer"),
-                audience: configuration.GetValue<string>("AppSettings:Audience"),
-                claims: claims,
-                expires: DateTime.UtcNow.AddDays(1),
-                signingCredentials: creds
-            );
-
-
-            return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
+            return Ok(ApiResponse<TokenResponseDto>.SuccessResponse(result, StatusCodes.Status200OK, "Token refreshed successfully"));
         }
+
+        [HttpGet("me")]
+        [Authorize]
+        public ActionResult<ApiResponse<string>> AuthenticatedOnlyEndpoint()
+        {
+            var username = User.FindFirstValue(ClaimTypes.Name) ?? string.Empty;
+            return Ok(ApiResponse<string>.SuccessResponse(username, StatusCodes.Status200OK, "You are authenticated"));
+        }
+
+        private List<string> GetModelStateErrors() =>
+            ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage) ? "Invalid request body" : e.ErrorMessage)
+                .ToList();
     }
 }
