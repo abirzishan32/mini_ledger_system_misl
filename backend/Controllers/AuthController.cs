@@ -3,6 +3,7 @@ using backend.DTOs;
 using backend.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace backend.Controllers
 {
@@ -10,6 +11,8 @@ namespace backend.Controllers
     [Route("api/[controller]")] // Define the common path for all endpoints in this controller
     public class AuthController : ControllerBase
     {
+        public const string BcryptPolicy = "bcrypt";
+
         private readonly IAuthService _authService;
 
         public AuthController(IAuthService authService)
@@ -18,6 +21,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("register")]
+        [EnableRateLimiting(BcryptPolicy)]
         public async Task<ActionResult<ApiResponse<UserReadDto>>> Register([FromBody] UserWriteDto request)
         {
             if (!ModelState.IsValid)
@@ -37,6 +41,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting(BcryptPolicy)]
         public async Task<ActionResult<ApiResponse<TokenResponseDto>>> Login([FromBody] LoginRequestDto request)
         {
             if (!ModelState.IsValid)
@@ -75,8 +80,6 @@ namespace backend.Controllers
         [Authorize]
         public async Task<ActionResult<ApiResponse<string>>> Logout()
         {
-            // The access token already proved who the caller is, so nothing is read
-            // from the body: a caller can only ever revoke their own session.
             if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
             {
                 return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid access token", StatusCodes.Status401Unauthorized));
