@@ -103,7 +103,7 @@ namespace backend.Services
             // earlier row, so paging this needs the opening balance fetched as a
             // separate SUM. Do that if accounts ever get large.
             var ledger = await _appDbContext.Entries
-                .Where(entry => entry.AccountId == accountId)
+                .Where(entry => entry.AccountId == accountId && entry.Account.OwnerId == ownerId)
                 .OrderBy(entry => entry.Transaction.OccurredAt)
                 .ThenBy(entry => entry.Transaction.CreatedAt)
                 .ProjectTo<AccountLedgerEntryDto>(_mapper.ConfigurationProvider)
