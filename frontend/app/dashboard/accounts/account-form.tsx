@@ -6,7 +6,8 @@ import { Loader2, Plus } from "lucide-react";
 import { createAccount } from "./actions";
 import { emptyAccountFormState } from "./form-state";
 import { FormAlert } from "@/components/form-alert";
-import { ACCOUNT_TYPES } from "@/lib/account-types";
+import { ACCOUNT_THEMES } from "./account-theme";
+import { ACCOUNT_TYPES, type AccountType } from "@/lib/account-types";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,7 +18,15 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect } from "@/components/ui/native-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "cn";
 
 export function AccountForm() {
   const [state, formAction, pending] = useActionState(
@@ -72,20 +81,69 @@ export function AccountForm() {
 
           <div className="space-y-2">
             <Label htmlFor="type">Type</Label>
-            <NativeSelect
-              key={state.type}
-              id="type"
+            {/* The one field in the app that is not a native <select>. A
+                browser renders nothing but text inside an <option>, so an icon
+                and a colour per choice are unreachable there. Base UI's
+                listbox handles the keyboard and screen-reader behaviour the
+                native element gave us for free. */}
+            <Select
+              // A listbox holds its own state, so a native form reset does not
+              // clear it the way it clears the text field. Keying on both the
+              // echoed type and the created name remounts it in exactly the two
+              // cases that matter: a rejection, so the choice is handed back,
+              // and a successful add, so the next one starts blank.
+              key={`${state.created}-${state.type}`}
               name="type"
               defaultValue={state.type}
               disabled={pending}
             >
-              <option value="">Select a type</option>
-              {ACCOUNT_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </NativeSelect>
+              <SelectTrigger id="type">
+                {/* A children function overrides `placeholder` entirely, so
+                    the empty case is handled here rather than there. */}
+                <SelectValue>
+                  {(value) => {
+                    const theme = ACCOUNT_THEMES[value as AccountType];
+
+                    if (!theme) {
+                      return (
+                        <span className="text-muted-foreground">
+                          Select a type
+                        </span>
+                      );
+                    }
+
+                    const Icon = theme.icon;
+
+                    return (
+                      <span className="flex items-center gap-2.5">
+                        <Icon
+                          className={cn("size-4", theme.iconColor)}
+                          aria-hidden="true"
+                        />
+                        {value}
+                      </span>
+                    );
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+
+              <SelectContent>
+                {ACCOUNT_TYPES.map((type) => {
+                  const theme = ACCOUNT_THEMES[type];
+                  const Icon = theme.icon;
+
+                  return (
+                    <SelectItem key={type} value={type}>
+                      <Icon
+                        className={cn("size-4 shrink-0", theme.iconColor)}
+                        aria-hidden="true"
+                      />
+                      <SelectItemText>{type}</SelectItemText>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
 
           <Button type="submit" className="h-10 w-full" disabled={pending}>

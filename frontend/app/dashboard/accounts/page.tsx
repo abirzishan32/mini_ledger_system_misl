@@ -4,6 +4,9 @@ import { ChevronRight, Wallet } from "lucide-react";
 
 import { AccountForm } from "./account-form";
 import { FormAlert } from "@/components/form-alert";
+import { cn } from "cn";
+
+import { ACCOUNT_THEMES } from "./account-theme";
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from "@/lib/account-types";
 import { balanceSide, formatAmount } from "@/lib/format";
 import { getAccounts } from "@/lib/ledger";
@@ -58,51 +61,92 @@ export default async function AccountsPage() {
               </p>
             </div>
           ) : (
-            groups.map((group) => (
-              <section
-                key={group.type}
-                className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10"
-              >
-                <h2 className="flex items-baseline justify-between gap-3 border-b px-4 py-2.5 text-sm font-medium">
-                  {ACCOUNT_TYPE_LABELS[group.type]}
-                  <span className="text-xs font-normal tabular-nums text-muted-foreground">
-                    {group.accounts.length}
-                  </span>
-                </h2>
+            groups.map((group) => {
+              const theme = ACCOUNT_THEMES[group.type];
+              const TypeIcon = theme.icon;
 
-                {/* A flex row rather than a table: two fields need no columns,
+              return (
+                <section
+                  key={group.type}
+                  className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10"
+                >
+                  {/* The 4px left edge is the group's colour. It reads as a tab
+                    down the side of the card once several are stacked, which is
+                    what makes the five groups tellable apart at a glance. */}
+                  <h2
+                    className={cn(
+                      "flex items-center gap-2.5 border-b border-l-4 px-4 py-2.5 text-sm font-medium",
+                      theme.header,
+                    )}
+                  >
+                    <TypeIcon
+                      className={cn("size-4 shrink-0", theme.iconColor)}
+                      aria-hidden="true"
+                    />
+                    {ACCOUNT_TYPE_LABELS[group.type]}
+                    <span
+                      className={cn(
+                        "ml-auto rounded-full px-2 py-0.5 text-xs font-medium tabular-nums",
+                        theme.badge,
+                      )}
+                    >
+                      {group.accounts.length}
+                    </span>
+                  </h2>
+
+                  {/* A flex row rather than a table: two fields need no columns,
                     and this stays readable down to a 320px screen without a
                     second mobile-only markup tree to keep in step. */}
-                <ul className="divide-y">
-                  {group.accounts.map((account) => (
-                    <li key={account.id}>
-                      {/* The whole row is the link, so the tap target is the
+                  <ul className="divide-y">
+                    {group.accounts.map((account) => (
+                      <li key={account.id}>
+                        {/* The whole row is the link, so the tap target is the
                           row rather than the few characters of its name. */}
-                      <Link
-                        href={`/dashboard/accounts/${account.id}`}
-                        className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/60"
-                      >
-                        <span className="min-w-0 truncate text-sm">
-                          {account.name}
-                        </span>
-                        <span className="flex shrink-0 items-center gap-1.5">
-                          <span className="font-mono text-sm tabular-nums">
-                            {formatAmount(account.balance)}
-                            <span className="ml-1.5 text-xs text-muted-foreground">
-                              {balanceSide(account.balance)}
+                        <Link
+                          href={`/dashboard/accounts/${account.id}`}
+                          className={cn(
+                            "flex items-center justify-between gap-3 px-4 py-3 transition-colors",
+                            theme.row,
+                          )}
+                        >
+                          <span className="flex min-w-0 items-center gap-2.5">
+                            <span
+                              className={cn(
+                                "size-1.5 shrink-0 rounded-full",
+                                theme.dot,
+                              )}
+                              aria-hidden="true"
+                            />
+                            <span className="min-w-0 truncate text-sm">
+                              {account.name}
                             </span>
                           </span>
-                          <ChevronRight
-                            className="size-3.5 text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))
+                          <span className="flex shrink-0 items-center gap-1.5">
+                            {/* The figure carries the group's colour; the Dr/Cr
+                              stays grey, so the eye lands on the number. */}
+                            <span
+                              className={cn(
+                                "font-mono text-sm tabular-nums",
+                                theme.balance,
+                              )}
+                            >
+                              {formatAmount(account.balance)}
+                              <span className="ml-1.5 text-xs text-muted-foreground">
+                                {balanceSide(account.balance)}
+                              </span>
+                            </span>
+                            <ChevronRight
+                              className="size-3.5 text-muted-foreground"
+                              aria-hidden="true"
+                            />
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              );
+            })
           )}
         </div>
 
