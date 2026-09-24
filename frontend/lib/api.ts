@@ -1,5 +1,9 @@
 import "server-only";
 
+import { redirect } from "next/navigation";
+
+import { getSession } from "@/lib/auth";
+
 /**
  * Mirrors ApiResponse<T> from the ASP.NET backend. Every endpoint returns this
  * envelope for both success and failure, so callers only ever handle one shape.
@@ -72,6 +76,42 @@ export async function apiFetch<T>(
     response.status,
     `Unexpected response from the server (HTTP ${response.status}).`,
   );
+}
+
+/**
+ * Calls the backend as the signed-in user.
+ *
+ * The session is read here rather than passed in, so a caller cannot supply a
+ * different user's identity: the only identity available is the one in this
+ * request's HttpOnly cookie, which the browser cannot read or forge.
+ *
+ * Both failure paths redirect rather than returning, so a page cannot forget to
+ * handle them. proxy.ts has already tried to refresh an expired token before
+ * this runs, so a 401 here means the session is genuinely dead.
+ */
+export async function apiFetchAuthed<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<ApiResponse<T>> {
+  const session = await getSession();
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  const response = await apiFetch<T>(path, {
+    ...init,
+    headers: {
+      ...init.headers,
+      Authorization: `Bearer ${session.accessToken}`,
+    },
+  });
+
+  if (response.statusCode === 401) {
+    redirect("/login");
+  }
+
+  return response;
 }
 
 /**

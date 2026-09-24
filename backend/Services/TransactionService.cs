@@ -1,5 +1,6 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using backend.Controllers;
 using backend.Data;
 using backend.DTOs;
 using backend.Entities;
@@ -20,15 +21,30 @@ namespace backend.Services
             _mapper = mapper;
         }
 
-        public async Task<IReadOnlyList<TransactionReadDto>> GetTransactions(Guid ownerId, int page, int pageSize)
+        public async Task<PaginatedResult<TransactionReadDto>> GetTransactions(Guid ownerId, int page, int pageSize)
         {
-            return await OwnedBy(ownerId)
+            var owned = OwnedBy(ownerId);
+
+            // Counted before the page is taken, so the total describes the whole result
+            // rather than the slice. Both statements run against the same owner filter,
+            // so a client can never learn how many rows exist beyond its own.
+            var totalCount = await owned.CountAsync();
+
+            var data = await owned
                 .OrderByDescending(transaction => transaction.OccurredAt)
                 .ThenByDescending(transaction => transaction.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ProjectTo<TransactionReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
+
+            return new PaginatedResult<TransactionReadDto>
+            {
+                Data = data,
+                TotalCount = totalCount,
+                PageNumber = page,
+                PageSize = pageSize
+            };
         }
 
         public async Task<TransactionReadDto?> GetTransaction(Guid ownerId, Guid transactionId)

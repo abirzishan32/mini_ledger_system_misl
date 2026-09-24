@@ -23,19 +23,19 @@ namespace backend.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IReadOnlyList<TransactionReadDto>>>> GetTransactions(
+        public async Task<ActionResult<ApiResponse<PaginatedResult<TransactionReadDto>>>> GetTransactions(
             [FromQuery][Range(1, int.MaxValue, ErrorMessage = "Page must be 1 or greater")] int page = 1,
             [FromQuery][Range(1, MaxPageSize, ErrorMessage = "Page size must be between 1 and 100")] int pageSize = DefaultPageSize)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ApiResponse<IReadOnlyList<TransactionReadDto>>.ErrorResponse(
+                return BadRequest(ApiResponse<PaginatedResult<TransactionReadDto>>.ErrorResponse(
                     "Validation failed", StatusCodes.Status400BadRequest, ModelState.ToErrorMessages()));
             }
 
             var transactions = await _transactionService.GetTransactions(User.GetUserId(), page, pageSize);
 
-            return Ok(ApiResponse<IReadOnlyList<TransactionReadDto>>.SuccessResponse(
+            return Ok(ApiResponse<PaginatedResult<TransactionReadDto>>.SuccessResponse(
                 transactions, StatusCodes.Status200OK, "Transactions retrieved"));
         }
 

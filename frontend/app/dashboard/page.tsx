@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { CircleAlert } from "lucide-react";
 
-import { apiFetch } from "@/lib/api";
-import { getSession } from "@/lib/auth";
+import { apiFetchAuthed } from "@/lib/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -16,23 +14,9 @@ import {
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const session = await getSession();
-
-  // Checked here as well as in proxy.ts: proxy is routing convenience, this is
-  // the boundary that actually guards the data.
-  if (!session) {
-    redirect("/login");
-  }
-
-  const me = await apiFetch<string>("/api/auth/me", {
-    headers: { Authorization: `Bearer ${session.accessToken}` },
-  });
-
-  // Proxy already tried to refresh before this rendered, so a rejection here
-  // means the session is genuinely dead rather than merely stale.
-  if (me.statusCode === 401) {
-    redirect("/login");
-  }
+  // apiFetchAuthed reads the session itself and redirects if it is missing or
+  // rejected, so this page cannot render with an unauthenticated caller.
+  const me = await apiFetchAuthed<string>("/api/auth/me");
 
   return (
     <div className="space-y-6">

@@ -1,10 +1,11 @@
+using backend.Controllers;
 using backend.DTOs;
 
 namespace backend.Interfaces
 {
     public interface ITransactionService
     {
-        Task<IReadOnlyList<TransactionReadDto>> GetTransactions(Guid ownerId, int page, int pageSize);
+        Task<PaginatedResult<TransactionReadDto>> GetTransactions(Guid ownerId, int page, int pageSize);
 
         Task<TransactionReadDto?> GetTransaction(Guid ownerId, Guid transactionId);
 

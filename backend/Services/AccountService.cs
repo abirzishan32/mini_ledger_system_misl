@@ -22,18 +22,15 @@ namespace backend.Services
 
         public async Task<IReadOnlyList<AccountReadDto>> GetAccounts(Guid ownerId)
         {
-            return await OwnedBy(ownerId)
-                .OrderBy(account => account.Type)
-                .ThenBy(account => account.Name)
-                .ProjectTo<AccountReadDto>(_mapper.ConfigurationProvider)
+            return await WithBalance(OwnedBy(ownerId)
+                    .OrderBy(account => account.Type)
+                    .ThenBy(account => account.Name))
                 .ToListAsync();
         }
 
         public async Task<AccountReadDto?> GetAccount(Guid ownerId, Guid accountId)
         {
-            return await OwnedBy(ownerId)
-                .Where(account => account.Id == accountId)
-                .ProjectTo<AccountReadDto>(_mapper.ConfigurationProvider)
+            return await WithBalance(OwnedBy(ownerId).Where(account => account.Id == accountId))
                 .FirstOrDefaultAsync();
         }
 
@@ -56,7 +53,16 @@ namespace backend.Services
             }
 
 
-            return _mapper.Map<AccountReadDto>(account);
+            // Built directly rather than mapped. A new account has no entries, so its
+            // balance is zero by definition and re-reading it would be a wasted trip.
+            return new AccountReadDto
+            {
+                Id = account.Id,
+                Name = account.Name,
+                Type = account.Type,
+                CreatedAt = account.CreatedAt,
+                Balance = 0m
+            };
         }
 
         public async Task<AccountReadDto?> RenameAccount(Guid ownerId, Guid accountId, AccountUpdateDto request)
@@ -142,6 +148,27 @@ namespace backend.Services
                 IsBalanced = totalDebits == totalCredits
             };
         }
+
+        /// <summary>
+        /// Projects accounts with their balance as a correlated subquery, so the whole
+        /// list costs one statement. Expressed here rather than as a mapping rule
+        /// because Account does not own its entries: they belong to Transaction's
+        /// aggregate, and a navigation collection would say otherwise.
+        ///
+        /// The cast to decimal? is load-bearing: SQL SUM over no rows is NULL, so an
+        /// account with no entries would otherwise fail to materialise.
+        /// </summary>
+        private IQueryable<AccountReadDto> WithBalance(IQueryable<Account> accounts) =>
+            accounts.Select(account => new AccountReadDto
+            {
+                Id = account.Id,
+                Name = account.Name,
+                Type = account.Type,
+                CreatedAt = account.CreatedAt,
+                Balance = _appDbContext.Entries
+                    .Where(entry => entry.AccountId == account.Id)
+                    .Sum(entry => (decimal?)entry.Amount) ?? 0m
+            });
 
         private IQueryable<Account> OwnedBy(Guid ownerId) =>
             _appDbContext.Accounts.Where(account => account.OwnerId == ownerId);

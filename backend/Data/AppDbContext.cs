@@ -96,7 +96,7 @@ namespace backend.Data
                 // Restrict, not Cascade: deleting an account that has been posted to
                 // would destroy history. The database refuses instead.
                 entry.HasOne(e => e.Account)
-                    .WithMany(a => a.Entries)
+                    .WithMany()
                     .HasForeignKey(e => e.AccountId)
                     .OnDelete(DeleteBehavior.Restrict);
 

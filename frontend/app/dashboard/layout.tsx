@@ -1,6 +1,7 @@
 import { LogOut, Wallet } from "lucide-react";
 
 import { signOut } from "@/app/(auth)/actions";
+import { Nav } from "./nav";
 import { Button } from "@/components/ui/button";
 import { getSession, readAccessTokenClaims } from "@/lib/auth";
 
@@ -24,6 +25,10 @@ export default async function DashboardLayout({
           <span className="text-sm font-semibold tracking-tight">
             Mini Ledger
           </span>
+
+          <div className="ml-4 hidden sm:block">
+            <Nav />
+          </div>
 
           <div className="ml-auto flex items-center gap-2">
             {username && (

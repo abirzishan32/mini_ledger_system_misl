@@ -12,7 +12,5 @@ namespace backend.Entities
         public AccountType Type { get; set; }
 
         public DateTime CreatedAt { get; set; }
-
-        public ICollection<Entry> Entries { get; set; } = new List<Entry>();
     }
 }
