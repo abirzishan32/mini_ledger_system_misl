@@ -15,6 +15,10 @@ namespace backend.Extensions
                 .Select(error => string.IsNullOrWhiteSpace(error.ErrorMessage)
                     ? "Invalid request body"
                     : error.ErrorMessage)
+                // A cross-field rule names every field it concerns, so ModelState
+                // holds one copy of its message per field. Distinct keeps the list
+                // one line per broken rule, which is what the client renders.
+                .Distinct()
                 .ToList();
     }
 }

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 
 export function AccountForm() {
   const [state, formAction, pending] = useActionState(
@@ -71,17 +72,12 @@ export function AccountForm() {
 
           <div className="space-y-2">
             <Label htmlFor="type">Type</Label>
-            {/* A native select: it is keyboard accessible, opens as the
-                platform's own picker on a phone, and works before any
-                JavaScript has loaded. A custom listbox would add a dependency
-                to reach the same place. */}
-            <select
+            <NativeSelect
               key={state.type}
               id="type"
               name="type"
               defaultValue={state.type}
               disabled={pending}
-              className="h-10 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 md:text-sm dark:bg-input/30"
             >
               <option value="">Select a type</option>
               {ACCOUNT_TYPES.map((type) => (
@@ -89,7 +85,7 @@ export function AccountForm() {
                   {type}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
 
           <Button type="submit" className="h-10 w-full" disabled={pending}>
