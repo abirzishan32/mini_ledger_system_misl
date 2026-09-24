@@ -1,13 +1,17 @@
 import "server-only";
 
 import { apiFetchAuthed, type ApiResponse } from "@/lib/api";
+import type { AccountType } from "@/lib/account-types";
+
+// Re-exported so a caller has one import for the ledger's shapes, while the
+// enum itself stays in a module the browser may also read.
+export type { AccountType } from "@/lib/account-types";
 
 /**
  * Mirrors the backend's ledger DTOs. Hand-written rather than generated: five
  * small shapes are cheaper to read than a codegen step, and a mismatch shows up
  * immediately as a type error at the point of use.
  */
-export type AccountType = "Asset" | "Liability" | "Income" | "Expense" | "Equity";
 
 export type Account = {
   id: string;

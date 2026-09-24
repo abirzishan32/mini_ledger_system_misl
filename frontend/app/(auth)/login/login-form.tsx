@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 
 import { login } from "../actions";
 import { emptyAuthFormState } from "../form-state";
-import { FormAlert } from "../form-alert";
+import { FormAlert } from "@/components/form-alert";
 import { PasswordInput } from "../password-input";
 import { Button } from "@/components/ui/button";
 import {

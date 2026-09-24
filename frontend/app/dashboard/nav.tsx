@@ -18,11 +18,14 @@ const LINKS = [
  * highlighted is a presentation detail, so it is safe for it to run in the
  * browser. Anything that decides access stays on the server.
  */
-export function Nav() {
+export function Nav({ className }: { className?: string }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-1" aria-label="Sections">
+    <nav
+      className={cn("flex items-center gap-1", className)}
+      aria-label="Sections"
+    >
       {LINKS.map((link) => {
         const active =
           link.href === "/dashboard"

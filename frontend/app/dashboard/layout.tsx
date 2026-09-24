@@ -47,6 +47,16 @@ export default async function DashboardLayout({
         </div>
       </header>
 
+      {/* The same links on a narrow screen, on their own row. Below sm the
+          header has no space for them, and hiding them there would leave a
+          phone with no way out of this page. A scrolling row costs five lines;
+          a drawer would cost a dependency and a second focus trap. */}
+      <div className="border-b sm:hidden">
+        <div className="mx-auto w-full max-w-5xl overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <Nav className="w-max py-1.5" />
+        </div>
+      </div>
+
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
         {children}
       </main>
