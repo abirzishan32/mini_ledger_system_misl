@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Wallet } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Wallet } from "lucide-react";
 
 import { AccountForm } from "./account-form";
 import { FormAlert } from "@/components/form-alert";
@@ -74,19 +75,29 @@ export default async function AccountsPage() {
                     second mobile-only markup tree to keep in step. */}
                 <ul className="divide-y">
                   {group.accounts.map((account) => (
-                    <li
-                      key={account.id}
-                      className="flex items-center justify-between gap-3 px-4 py-3"
-                    >
-                      <span className="min-w-0 truncate text-sm">
-                        {account.name}
-                      </span>
-                      <span className="shrink-0 font-mono text-sm tabular-nums">
-                        {formatAmount(account.balance)}
-                        <span className="ml-1.5 text-xs text-muted-foreground">
-                          {balanceSide(account.balance)}
+                    <li key={account.id}>
+                      {/* The whole row is the link, so the tap target is the
+                          row rather than the few characters of its name. */}
+                      <Link
+                        href={`/dashboard/accounts/${account.id}`}
+                        className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/60"
+                      >
+                        <span className="min-w-0 truncate text-sm">
+                          {account.name}
                         </span>
-                      </span>
+                        <span className="flex shrink-0 items-center gap-1.5">
+                          <span className="font-mono text-sm tabular-nums">
+                            {formatAmount(account.balance)}
+                            <span className="ml-1.5 text-xs text-muted-foreground">
+                              {balanceSide(account.balance)}
+                            </span>
+                          </span>
+                          <ChevronRight
+                            className="size-3.5 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        </span>
+                      </Link>
                     </li>
                   ))}
                 </ul>

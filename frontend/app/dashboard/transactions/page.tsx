@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, NotebookPen } from "lucide-react";
+import { cn } from "cn";
 
 import { TransactionForm } from "./transaction-form";
 import { FormAlert } from "@/components/form-alert";
@@ -58,7 +59,7 @@ export default async function TransactionsPage({
           </div>
           <Link
             href="/dashboard/accounts"
-            className={buttonVariants({ size: "lg" })}
+            className={cn(buttonVariants({ size: "lg" }))}
           >
             Add accounts
           </Link>
@@ -183,7 +184,7 @@ function PagerLink({
   return (
     <Link
       href={`/dashboard/transactions?page=${page}`}
-      className={buttonVariants({ variant: "outline", size: "sm" })}
+      className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
     >
       {children}
     </Link>
