@@ -10,6 +10,11 @@ namespace backend.Interfaces
         Task<TransactionReadDto?> GetTransaction(Guid ownerId, Guid transactionId);
 
     
-        Task<TransactionReadDto?> CreateTransaction(Guid ownerId, TransactionWriteDto request, string? idempotencyKey);
+        /// <summary>
+        /// Posts a transfer. Returns the transaction, or an Error describing why it
+        /// was refused — the two refusals differ, so the caller can say which.
+        /// </summary>
+        Task<(TransactionReadDto? Transaction, string? Error)> CreateTransaction(
+            Guid ownerId, TransactionWriteDto request, string? idempotencyKey);
     }
 }

@@ -67,16 +67,13 @@ namespace backend.Controllers
                     "Validation failed", StatusCodes.Status400BadRequest, ModelState.ToErrorMessages()));
             }
 
-            var transaction = await _transactionService.CreateTransaction(
+            var (transaction, error) = await _transactionService.CreateTransaction(
                 User.GetUserId(), request, idempotencyKey);
 
             if (transaction == null)
             {
-                // The ids are request data, so this is a malformed request rather than
-                // a missing resource. Phrased without saying which account is at
-                // fault, since one may exist but belong to somebody else.
                 return BadRequest(ApiResponse<TransactionReadDto>.ErrorResponse(
-                    "Both accounts must exist and belong to you", StatusCodes.Status400BadRequest));
+                    error ?? "Transaction could not be posted", StatusCodes.Status400BadRequest));
             }
 
             return CreatedAtAction(nameof(GetTransaction), new { id = transaction.Id },
