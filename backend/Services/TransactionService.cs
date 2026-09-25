@@ -90,8 +90,15 @@ namespace backend.Services
             if (accounts.Single(account => account.Id == creditAccountId).Type == AccountType.Asset)
             {
                
+                // NO KEY UPDATE, not plain FOR UPDATE. Inserting an Entry takes an
+                // implicit FOR KEY SHARE lock on the account its foreign key points
+                // at, so every posting touches both account rows. FOR UPDATE
+                // conflicts with FOR KEY SHARE, which deadlocked A->B against B->A.
+                // NO KEY UPDATE still conflicts with itself, so two postings out of
+                // one account queue as intended, but lets the other posting's entry
+                // inserts through.
                 await _appDbContext.Database.ExecuteSqlAsync(
-                    $@"SELECT 1 FROM ""Accounts"" WHERE ""Id"" = {creditAccountId} FOR UPDATE");
+                    $@"SELECT 1 FROM ""Accounts"" WHERE ""Id"" = {creditAccountId} FOR NO KEY UPDATE");
 
                 var available = await _appDbContext.Entries
                     .Where(entry => entry.AccountId == creditAccountId)
