@@ -3,6 +3,7 @@ import { FileQuestion } from "lucide-react";
 
 import { cn } from "cn";
 
+import { EmptyState } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
 
 /**
@@ -15,20 +16,20 @@ import { buttonVariants } from "@/components/ui/button";
  */
 export default function DashboardNotFound() {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-xl bg-card px-6 py-16 text-center ring-1 ring-foreground/10">
-      <FileQuestion className="size-6 text-muted-foreground" aria-hidden="true" />
-      <div className="space-y-1">
-        <h1 className="text-sm font-medium">Not found</h1>
-        <p className="max-w-sm text-sm text-muted-foreground">
-          This page does not exist, or it belongs to another ledger.
-        </p>
-      </div>
-      <Link
-        href="/dashboard"
-        className={cn(buttonVariants({ variant: "outline" }))}
-      >
-        Back to the dashboard
-      </Link>
-    </div>
+    <EmptyState
+      icon={FileQuestion}
+      title="Not found"
+      titleAs="h1"
+      action={
+        <Link
+          href="/dashboard"
+          className={cn(buttonVariants({ variant: "outline" }))}
+        >
+          Back to the dashboard
+        </Link>
+      }
+    >
+      This page does not exist, or it belongs to another ledger.
+    </EmptyState>
   );
 }

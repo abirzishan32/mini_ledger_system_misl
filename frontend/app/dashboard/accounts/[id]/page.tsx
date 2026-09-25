@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
+import { EmptyState } from "@/components/empty-state";
 import { FormAlert } from "@/components/form-alert";
+import { Blank, TableFrame, Th } from "@/components/ui/table";
 import { balanceSide, formatAmount, formatDate } from "@/lib/format";
 import { getAccount, getAccountLedger } from "@/lib/ledger";
 
@@ -71,43 +73,36 @@ export default async function AccountStatementPage({
       />
 
       {lines.length === 0 ? (
-        <p className="rounded-xl bg-card px-6 py-10 text-center text-sm text-muted-foreground ring-1 ring-foreground/10">
-          Nothing posted to this account yet.
-        </p>
+        <EmptyState title="Nothing posted to this account yet">
+          Entries appear here as soon as a transaction touches this account.
+        </EmptyState>
       ) : (
         // A real table, because the debit and credit columns are the point:
         // which side a line landed on is what makes this a ledger rather than
         // a list of amounts. Five columns do not fit a phone, so the table
         // scrolls inside its frame instead of collapsing into a second layout
         // that would have to be kept in step with this one.
-        <div className="overflow-x-auto rounded-xl bg-card ring-1 ring-foreground/10">
+        <TableFrame>
           <table className="w-full min-w-[34rem] text-sm">
             <caption className="sr-only">
               Statement for {account.data?.name}, oldest entry first
             </caption>
             <thead>
               <tr className="border-b text-xs text-muted-foreground">
-                <th scope="col" className="px-4 py-2.5 text-left font-medium">
-                  Date
-                </th>
-                <th scope="col" className="px-4 py-2.5 text-left font-medium">
-                  Description
-                </th>
-                <th scope="col" className="px-4 py-2.5 text-right font-medium">
-                  Debit
-                </th>
-                <th scope="col" className="px-4 py-2.5 text-right font-medium">
-                  Credit
-                </th>
-                <th scope="col" className="px-4 py-2.5 text-right font-medium">
-                  Balance
-                </th>
+                <Th>Date</Th>
+                <Th>Description</Th>
+                <Th align="right">Debit</Th>
+                <Th align="right">Credit</Th>
+                <Th align="right">Balance</Th>
               </tr>
             </thead>
 
             <tbody className="divide-y">
               {lines.map((line, index) => (
-                <tr key={`${line.transactionId}-${index}`}>
+                <tr
+                  key={`${line.transactionId}-${index}`}
+                  className="transition-colors hover:bg-muted/50"
+                >
                   <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                     <time dateTime={line.occurredAt}>
                       {formatDate(line.occurredAt)}
@@ -138,7 +133,7 @@ export default async function AccountStatementPage({
               ))}
             </tbody>
           </table>
-        </div>
+        </TableFrame>
       )}
 
       {lines.length > 0 && (
@@ -148,14 +143,5 @@ export default async function AccountStatementPage({
         </p>
       )}
     </div>
-  );
-}
-
-/** An em dash for the side a line did not touch, read as "empty" rather than as zero. */
-function Blank() {
-  return (
-    <span className="text-muted-foreground" aria-hidden="true">
-      —
-    </span>
   );
 }

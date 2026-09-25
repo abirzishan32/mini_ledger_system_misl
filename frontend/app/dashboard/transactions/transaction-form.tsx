@@ -10,12 +10,12 @@ import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from "@/lib/account-types";
 import type { Account } from "@/lib/ledger";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -44,127 +44,141 @@ export function TransactionForm({
     setIdempotencyKey(crypto.randomUUID());
   }, [state.postedId]);
 
-  return (
-    <Card className="[--card-spacing:--spacing(5)]">
-      <CardHeader>
-        <CardTitle>Post a transaction</CardTitle>
-        <CardDescription>
-          Value moves from the credit account to the debit account. Buying
-          supplies with cash debits Office Expense and credits Cash.
-        </CardDescription>
-      </CardHeader>
+  const [open, setOpen] = useState(false);
 
-      {/* noValidate: TransactionWriteDto owns every rule, including the two
+  // Close once the server confirms the posting. Keyed on the posted id, which
+  // changes only on success — a rejection leaves the dialog open with the
+  // messages and every value still in place.
+  useEffect(() => {
+    if (state.postedId !== "") {
+      setOpen(false);
+    }
+  }, [state.postedId]);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <Button size="lg">
+            <Plus aria-hidden="true" />
+            Post transaction
+          </Button>
+        }
+      />
+
+      <DialogContent className="max-w-[34rem]">
+        <div className="space-y-1 pr-6">
+          <DialogTitle>Post a transaction</DialogTitle>
+          <DialogDescription>
+            Value moves from the credit account to the debit account. Buying
+            supplies with cash debits Office Expense and credits Cash.
+          </DialogDescription>
+        </div>
+
+        {/* noValidate: TransactionWriteDto owns every rule, including the two
           cross-field ones the browser could not express anyway — the accounts
           must differ, and the date cannot be in the future. */}
-      <form action={formAction} noValidate>
-        <CardContent className="space-y-4">
-          <FormAlert message={state.message} errors={state.errors} />
+        <form action={formAction} noValidate>
+          <div className="mt-5 space-y-4">
+            <FormAlert message={state.message} errors={state.errors} />
 
-          <div aria-live="polite" aria-atomic="true">
-            {state.postedId !== "" && (
-              <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-                Posted{" "}
-                <span className="font-medium text-foreground">
-                  {state.postedDescription}
-                </span>
-                .
-              </p>
-            )}
-          </div>
+            <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
 
-          <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field id="occurredAt" label="Date">
+                <Input
+                  key={`date-${state.occurredAt}`}
+                  id="occurredAt"
+                  name="occurredAt"
+                  type="date"
+                  className="h-10"
+                  defaultValue={state.occurredAt || today}
+                  disabled={pending}
+                />
+              </Field>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Field id="occurredAt" label="Date">
-              <Input
-                key={`date-${state.occurredAt}`}
-                id="occurredAt"
-                name="occurredAt"
-                type="date"
-                className="h-10"
-                defaultValue={state.occurredAt || today}
-                disabled={pending}
-              />
-            </Field>
-
-            <Field id="description" label="Description" className="lg:col-span-2">
-              <Input
-                key={`description-${state.description}`}
+              <Field
                 id="description"
-                name="description"
-                className="h-10"
-                defaultValue={state.description}
-                placeholder="Consulting fee"
-                autoComplete="off"
-                disabled={pending}
-              />
-            </Field>
+                label="Description"
+                className="sm:col-span-2"
+              >
+                <Input
+                  key={`description-${state.description}`}
+                  id="description"
+                  name="description"
+                  className="h-10"
+                  defaultValue={state.description}
+                  placeholder="Consulting fee"
+                  autoComplete="off"
+                  disabled={pending}
+                />
+              </Field>
 
-            <Field id="debitAccountId" label="Debit account">
-              <AccountOptions
-                id="debitAccountId"
-                accounts={accounts}
-                defaultValue={state.debitAccountId}
-                disabled={pending}
-              />
-            </Field>
+              <Field id="debitAccountId" label="Debit account">
+                <AccountOptions
+                  id="debitAccountId"
+                  accounts={accounts}
+                  defaultValue={state.debitAccountId}
+                  disabled={pending}
+                />
+              </Field>
 
-            <Field id="creditAccountId" label="Credit account">
-              <AccountOptions
-                id="creditAccountId"
-                accounts={accounts}
-                defaultValue={state.creditAccountId}
-                disabled={pending}
-              />
-            </Field>
+              <Field id="creditAccountId" label="Credit account">
+                <AccountOptions
+                  id="creditAccountId"
+                  accounts={accounts}
+                  defaultValue={state.creditAccountId}
+                  disabled={pending}
+                />
+              </Field>
 
-            <Field id="amount" label="Amount">
-              <Input
-                key={`amount-${state.amount}`}
-                id="amount"
-                name="amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                inputMode="decimal"
-                className="h-10 font-mono tabular-nums"
-                defaultValue={state.amount}
-                placeholder="0.00"
-                autoComplete="off"
-                disabled={pending}
-              />
-            </Field>
+              <Field id="amount" label="Amount">
+                <Input
+                  key={`amount-${state.amount}`}
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  inputMode="decimal"
+                  className="h-10 font-mono tabular-nums"
+                  defaultValue={state.amount}
+                  placeholder="0.00"
+                  autoComplete="off"
+                  disabled={pending}
+                />
+              </Field>
 
-            <Field id="reference" label="Reference" optional>
-              <Input
-                key={`reference-${state.reference}`}
-                id="reference"
-                name="reference"
-                className="h-10"
-                defaultValue={state.reference}
-                placeholder="INV-001"
-                autoComplete="off"
-                disabled={pending}
-              />
-            </Field>
+              <Field id="reference" label="Reference" optional>
+                <Input
+                  key={`reference-${state.reference}`}
+                  id="reference"
+                  name="reference"
+                  className="h-10"
+                  defaultValue={state.reference}
+                  placeholder="INV-001"
+                  autoComplete="off"
+                  disabled={pending}
+                />
+              </Field>
+            </div>
+
+            <Button
+              type="submit"
+              className="h-10 w-full sm:w-auto"
+              disabled={pending}
+            >
+              {pending ? (
+                <Loader2 className="animate-spin" aria-hidden="true" />
+              ) : (
+                <Plus aria-hidden="true" />
+              )}
+              {pending ? "Posting" : "Post transaction"}
+            </Button>
           </div>
-
-          <Button
-            type="submit"
-            className="h-10 w-full sm:w-auto"
-            disabled={pending}
-          >
-            {pending ? (
-              <Loader2 className="animate-spin" aria-hidden="true" />
-            ) : (
-              <Plus aria-hidden="true" />
-            )}
-            {pending ? "Posting" : "Post transaction"}
-          </Button>
-        </CardContent>
-      </form>
-    </Card>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

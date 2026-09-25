@@ -25,3 +25,20 @@ export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   Expense: "Expenses",
   Equity: "Equity",
 };
+
+/**
+ * Groups anything that carries an account type into the five buckets, in the
+ * order a chart of accounts is read, dropping empty ones.
+ *
+ * The accounts list and the trial balance both did this inline with the same
+ * map-filter pair.
+ */
+export function groupByType<T>(
+  items: readonly T[],
+  typeOf: (item: T) => AccountType,
+): { type: AccountType; items: T[] }[] {
+  return ACCOUNT_TYPES.map((type) => ({
+    type,
+    items: items.filter((item) => typeOf(item) === type),
+  })).filter((group) => group.items.length > 0);
+}

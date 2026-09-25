@@ -3,11 +3,13 @@ import Link from "next/link";
 import { ChevronRight, Wallet } from "lucide-react";
 
 import { AccountForm } from "./account-form";
+import { EmptyState } from "@/components/empty-state";
 import { FormAlert } from "@/components/form-alert";
+import { PageHeader } from "@/components/page-header";
 import { cn } from "cn";
 
 import { ACCOUNT_THEMES } from "./account-theme";
-import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from "@/lib/account-types";
+import { ACCOUNT_TYPE_LABELS, groupByType } from "@/lib/account-types";
 import { balanceSide, formatAmount } from "@/lib/format";
 import { getAccounts } from "@/lib/ledger";
 
@@ -23,22 +25,22 @@ export default async function AccountsPage() {
   // type, and one pass over at most a few dozen rows is cheaper than a second
   // endpoint. ACCOUNT_TYPES drives the order, so accounting order holds even if
   // the API returns rows in another.
-  const groups = ACCOUNT_TYPES.map((type) => ({
-    type,
-    accounts: accounts.filter((account) => account.type === type),
-  })).filter((group) => group.accounts.length > 0);
+  const groups = groupByType(accounts, (account) => account.type);
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">Accounts</h1>
-        <p className="text-sm text-muted-foreground">
-          Your chart of accounts. Every balance is summed from posted entries,
-          never stored on the account itself.
-        </p>
-      </div>
+      {/* The form used to hold a fixed rail beside the list. Adding an account
+          is a setup-time action, so it now lives behind a button and the list
+          gets the page to itself. */}
+      <PageHeader title="Accounts" action={<AccountForm />}>
+        Your chart of accounts. Every balance is summed from posted entries,
+        never stored on the account itself.
+      </PageHeader>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      {/* Held to a readable column rather than the full page. A name on the far
+          left and a figure on the far right of 1024px is harder to pair up than
+          the two-column layout this replaced. */}
+      <div className="max-w-3xl">
         {/* min-w-0: a grid track is floored at its content's min-width, so a
             long account name would widen the column and push the balances off
             a narrow screen instead of being truncated. */}
@@ -49,17 +51,10 @@ export default async function AccountsPage() {
           />
 
           {accounts.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-xl bg-card px-6 py-12 text-center ring-1 ring-foreground/10">
-              <Wallet
-                className="size-6 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <p className="text-sm font-medium">No accounts yet</p>
-              <p className="max-w-xs text-sm text-muted-foreground">
-                Add Cash, Sales, or an expense account to start recording
-                entries against them.
-              </p>
-            </div>
+            <EmptyState icon={Wallet} title="No accounts yet">
+              Add Cash, Sales, or an expense account to start recording entries
+              against them.
+            </EmptyState>
           ) : (
             groups.map((group) => {
               const theme = ACCOUNT_THEMES[group.type];
@@ -90,7 +85,7 @@ export default async function AccountsPage() {
                         theme.badge,
                       )}
                     >
-                      {group.accounts.length}
+                      {group.items.length}
                     </span>
                   </h2>
 
@@ -98,7 +93,7 @@ export default async function AccountsPage() {
                     and this stays readable down to a 320px screen without a
                     second mobile-only markup tree to keep in step. */}
                   <ul className="divide-y">
-                    {group.accounts.map((account) => (
+                    {group.items.map((account) => (
                       <li key={account.id}>
                         {/* The whole row is the link, so the tap target is the
                           row rather than the few characters of its name. */}
@@ -148,10 +143,6 @@ export default async function AccountsPage() {
               );
             })
           )}
-        </div>
-
-        <div className="lg:sticky lg:top-6">
-          <AccountForm />
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
 import { FormAlert } from "@/components/form-alert";
+import { PageHeader } from "@/components/page-header";
 import { apiFetchAuthed } from "@/lib/api";
 import { formatAmount } from "@/lib/format";
 import { getTransactions, getTrialBalance } from "@/lib/ledger";
@@ -29,14 +30,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">
-          {me.success ? `Welcome back, ${me.data}` : "Dashboard"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Accounts, entries and running balances live here.
-        </p>
-      </div>
+      <PageHeader title={me.success ? `Welcome back, ${me.data}` : "Dashboard"}>
+        Accounts, entries and running balances live here.
+      </PageHeader>
 
       <FormAlert
         message={trialBalance.success ? "" : trialBalance.message}
@@ -54,7 +50,11 @@ export default async function DashboardPage() {
           href="/dashboard/transactions"
           label="Transactions"
           value={String(transactionCount)}
-          hint={transactionCount === 0 ? "Nothing posted yet" : "Both sides recorded"}
+          hint={
+            transactionCount === 0
+              ? "Nothing posted yet"
+              : "Both sides recorded"
+          }
         />
         <Tile
           href="/dashboard/trial-balance"

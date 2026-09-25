@@ -18,7 +18,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-svh flex-col">
       <header className="border-b bg-background">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-2.5 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-2.5 px-3 sm:px-5">
           <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Wallet className="size-4" aria-hidden="true" />
           </span>
@@ -52,12 +52,12 @@ export default async function DashboardLayout({
           phone with no way out of this page. A scrolling row costs five lines;
           a drawer would cost a dependency and a second focus trap. */}
       <div className="border-b sm:hidden">
-        <div className="mx-auto w-full max-w-5xl overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mx-auto w-full max-w-5xl overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <Nav className="w-max py-1.5" />
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-3 py-8 sm:px-5">
         {children}
       </main>
     </div>
