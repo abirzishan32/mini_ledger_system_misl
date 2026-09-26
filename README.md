@@ -54,8 +54,7 @@ lost on the way back.
 
 ## 2. Setup and run
 
-Built and tested on macOS (Apple Silicon). Both paths below were run start to
-finish before this file was written.
+Built and tested on macOS (Apple Silicon).
 
 ### 2.1 With Docker (recommended)
 
@@ -457,10 +456,10 @@ slip in between. The loser catches SQLSTATE `23505`, rolls back, and reads the
 winner's row instead. Both callers get the same transaction back and one row
 exists.
 
-Firing two requests with the same key from two threads, eight
-times over, seven of the eight got past the lookup and were settled by the
-index. An application check and a database constraint look similar. They are not
-the same guarantee.
+The lookup alone does not make this safe. It runs on one connection at one
+moment and stays true only until the next statement. The index is checked by the
+database at commit time, against every concurrent writer at once. An application
+check and a database constraint look similar. They are not the same guarantee.
 
 ### 4.7 Concurrency and locking
 
@@ -483,23 +482,27 @@ row before reading its balance:
 SELECT 1 FROM "Accounts" WHERE "Id" = {creditAccountId} FOR NO KEY UPDATE
 ```
 
-**Why `FOR NO KEY UPDATE` and not `FOR UPDATE`.** The first version used
-`FOR UPDATE` and deadlocked under test. 40 simultaneous A→B and B→A transfers
-produced three `40P01` errors. The cause is not visible in the code. Inserting
-an `Entry` takes an implicit `FOR KEY SHARE` lock on the account its foreign key
-points at, so every posting really touches both account rows. `FOR UPDATE`
-conflicts with `FOR KEY SHARE`. So A→B held one row and waited on the other,
-while B→A did the same thing in reverse.
+**Why `FOR NO KEY UPDATE` and not `FOR UPDATE`.**
+
+Inserting an `Entry` takes an implicit `FOR KEY SHARE` lock on the account its
+foreign key points at. So a posting holds a lock on both of its accounts, not
+only the one it locks explicitly.
+
+`FOR UPDATE` conflicts with `FOR KEY SHARE`. Using it here deadlocks two
+transfers running in opposite directions. A transfer from A to B locks A, then
+needs B for its entry insert. A transfer from B to A locks B, then needs A.
+Neither can move, and PostgreSQL aborts one of them with `40P01`.
 
 | Lock | Conflicts with itself? | Conflicts with `FOR KEY SHARE`? |
 |---|---|---|
-| `FOR UPDATE` | yes | yes, and that was the bug |
-| `FOR NO KEY UPDATE` | yes, so withdrawals still queue | no, so entry inserts go through |
+| `FOR UPDATE` | yes | yes |
+| `FOR NO KEY UPDATE` | yes | no |
 
-Both of those properties are needed, and the weaker lock has both. No cycle can
-form. One row is locked explicitly, in a mode that does not conflict with the
-foreign key lock the other posting needs. After the change the same test did 205
-lock acquisitions with zero deadlocks.
+`FOR NO KEY UPDATE` has both of the properties this needs. It conflicts with
+itself, so two withdrawals from the same account still queue up. It does not
+conflict with `FOR KEY SHARE`, so the other posting's entry inserts go through.
+No cycle can form. One row is locked explicitly, in a mode that does not
+conflict with the foreign key lock the other posting needs.
 
 The lock sits inside the transaction because a lock lives exactly as long as its
 transaction. Taken outside, it would be released before the insert it is meant
@@ -507,8 +510,7 @@ to protect.
 
 ### 4.8 Isolation level
 
-The system runs on PostgreSQL's default, Read Committed. That was a decision,
-not something left unconsidered.
+The system runs on PostgreSQL's default, Read Committed.
 
 Read Committed guarantees you never read another transaction's uncommitted work.
 It does not prevent write skew. In the table above both reads were of committed
@@ -596,15 +598,12 @@ no controller repeats the check and none of them can forget it.
 
 ## 7. Known limitations
 
-- **Deadlocks are not retried.** Testing did not produce any after the lock
-  change, but if PostgreSQL reported `40P01` the error would reach the user
-  instead of being retried with a backoff.
+- **Deadlocks are not retried.** If PostgreSQL reports `40P01`, the error
+  reaches the user instead of being retried with a backoff.
 - **No request fingerprint on the idempotency key.** Send the same key with a
   different body and you get the original transaction back, and the new content
   is ignored. Storing a hash of the request next to the key would close that.
 - **Statements load the whole history.** A running balance depends on every
   earlier row, so paging it needs the opening balance fetched as a separate
   `SUM`. Fine at this size. Not fine at ten million entries.
-- **No automated test suite.** Behaviour was checked with purpose-built
-  concurrency harnesses, including thread barriers and a response-dropping TCP
-  proxy, rather than a committed test project.
+- **No automated test suite.** There is no test project in the repository.
