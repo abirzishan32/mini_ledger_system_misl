@@ -4,6 +4,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* The rail is narrow unless the pointer is on it. There is no pinned state to
+   remember any more, so there is no attribute, no cookie and no click handler
+   — hover is the whole mechanism, and CSS is the whole implementation. */
+@custom-variant rail-narrow (aside:not(:hover) &);
+
+/* True on the content wrapper while the rail is hovered, so the page shifts
+   with the rail instead of being covered by it. */
+@custom-variant rail-hover (:has(> aside:hover) > &);
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
