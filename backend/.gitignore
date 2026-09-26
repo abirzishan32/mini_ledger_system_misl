@@ -30,12 +30,6 @@ packages/
 .nuget/packages/
 Generated_Code/
 
-# Docker files
-docker-compose.override.yml
-docker-compose.*
-Dockerfile.*
-.dockerignore
-
 # Database and cache
 *.db
 *.sqlite

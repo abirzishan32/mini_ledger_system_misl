@@ -4,3 +4,6 @@
 user_manual.md
 walkthrough.md
 .claude
+
+# Compose secrets. .env.example is the committed template.
+.env

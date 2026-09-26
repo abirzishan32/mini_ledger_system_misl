@@ -115,6 +115,15 @@ builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly);
 
 var app = builder.Build();
 
+// Brings the schema up to date before the first request. A container starts
+// against an empty database, so without this the app would come up and then fail
+// on its first query. Idempotent: on a database already at the latest migration
+// it does nothing, which is what makes restarting safe.
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+}
+
 // Outermost, so it wraps every middleware below. Without it an unhandled
 // exception is the one response in the API that is not an ApiResponse, and in
 // development it would carry a stack trace to the browser. The exception is
@@ -137,10 +146,21 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Skipped inside a container, which has no HTTPS listener of its own: the
+// middleware cannot work out a port to redirect to, so it would redirect nothing
+// and log a warning on every request. TLS terminates in front of the container.
+if (!app.Configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER"))
+{
+    app.UseHttpsRedirection();
+}
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization(); // Without this, [Authorize] endpoints throw instead of returning 401.
+// Liveness for the container healthcheck. Anonymous, and deliberately does not
+// touch the database: it answers whether this process is serving requests, which
+// is what compose needs before it starts anything that depends on the API.
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+
 app.MapControllers();
 
 app.Run();

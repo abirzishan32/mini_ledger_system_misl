@@ -1,0 +1,74 @@
+# Three services: the database, the ASP.NET API, and the Next.js server the
+# browser actually talks to.
+#
+#   cp .env.example .env    # then set your own secrets
+#   docker compose up --build
+
+name: mini-ledger
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      # Named volume, so the ledger survives `docker compose down`. Removing it
+      # takes `down -v`, which is the only way to get a clean database back.
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Postgres starts, runs its init scripts, then restarts before it is
+      # really ready. Waiting for the port alone would let the backend connect
+      # during that window and fail. pg_isready reports actual readiness.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      # Assembled from the same variables the database is created with, so the
+      # two cannot drift apart. Double underscore is how .NET maps an
+      # environment variable onto a nested configuration key.
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      # Signs every access token. Program.cs refuses to start without it.
+      AppSettings__Token: ${JWT_SIGNING_KEY}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+    depends_on:
+      db:
+        # Not just "started": the backend applies migrations on startup, which
+        # needs a database that is actually accepting connections.
+        condition: service_healthy
+    healthcheck:
+      # up -d returns as soon as the container starts, which is before Kestrel is
+      # listening. Without this the frontend can start against a backend that is
+      # not serving yet, and `up --wait` would report ready too early.
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+    ports:
+      - "${BACKEND_PORT:-5031}:8080"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    environment:
+      # Service name, not localhost: inside the network each container has its
+      # own loopback. Read per request on the server, so this is a runtime
+      # value and the same image works anywhere.
+      API_BASE_URL: http://backend:8080
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

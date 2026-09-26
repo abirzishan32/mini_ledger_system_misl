@@ -1,0 +1,9 @@
+# Build output: rebuilt inside the image, and copying a host build in would ship
+# binaries compiled against a different runtime.
+bin/
+obj/
+
+# Never belongs in an image.
+**/*.user
+.vs/
+.vscode/

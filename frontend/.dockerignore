@@ -1,0 +1,12 @@
+# 400MB that the build reinstalls from package-lock anyway. Copying it in would
+# also ship whatever the host resolved, which may not match the lockfile.
+node_modules/
+.next/
+
+# Local configuration and secrets. API_BASE_URL is supplied by compose instead.
+.env
+.env.*
+!.env.example
+
+.git/
+npm-debug.log*
