@@ -11,13 +11,6 @@ import { getTransactions, getTrialBalance } from "@/lib/ledger";
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  // apiFetchAuthed reads the session itself and redirects if it is missing or
-  // rejected, so this page cannot render with an unauthenticated caller.
-  //
-  // The trial balance carries one line per account, so it answers how many
-  // accounts exist as well; asking for the list separately would be a second
-  // request for a number already in hand. The transaction page is the
-  // smallest one the API will serve — only its total is read.
   const [me, transactions, trialBalance] = await Promise.all([
     apiFetchAuthed<string>("/api/auth/me"),
     getTransactions(1, 1),

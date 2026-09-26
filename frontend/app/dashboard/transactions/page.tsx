@@ -20,7 +20,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Transactions" };
 
-/** Smaller than the backend's default of 50: a page should fit on a screen. */
 const PAGE_SIZE = 20;
 
 export default async function TransactionsPage({

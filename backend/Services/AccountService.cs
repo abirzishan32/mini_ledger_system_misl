@@ -20,6 +20,9 @@ namespace backend.Services
             _mapper = mapper;
         }
 
+        // Lists the owner's accounts in chart order: by type, then by name.
+        // Balances come from WithBalance as a correlated subquery, so the whole
+        // list costs one statement rather than one per account.
         public async Task<IReadOnlyList<AccountReadDto>> GetAccounts(Guid ownerId)
         {
             return await WithBalance(OwnedBy(ownerId)
@@ -28,12 +31,20 @@ namespace backend.Services
                 .ToListAsync();
         }
 
+        // Fetches one account with its balance, scoped to the owner by OwnedBy.
+        // Returns null when the account is missing or belongs to someone else, which
+        // AccountsController reports as 404 either way.
         public async Task<AccountReadDto?> GetAccount(Guid ownerId, Guid accountId)
         {
             return await WithBalance(OwnedBy(ownerId).Where(account => account.Id == accountId))
                 .FirstOrDefaultAsync();
         }
 
+        // Creates an account, mapping the DTO through AutoMapper's AccountProfile and
+        // stamping owner and creation time on the server so the client cannot set them.
+        // A 23505 from the unique index on (OwnerId, Name) is a duplicate name and
+        // returns null. The balance is built as 0 rather than re-read: a new account
+        // has no entries, so a round trip would only confirm what is already known.
         public async Task<AccountReadDto?> CreateAccount(Guid ownerId, AccountWriteDto request)
         {
             var account = _mapper.Map<Account>(request);
@@ -52,9 +63,6 @@ namespace backend.Services
                 return null;
             }
 
-
-            // Built directly rather than mapped. A new account has no entries, so its
-            // balance is zero by definition and re-reading it would be a wasted trip.
             return new AccountReadDto
             {
                 Id = account.Id,
@@ -65,6 +73,10 @@ namespace backend.Services
             };
         }
 
+        // Renames an owned account, then re-reads it through GetAccount so the reply
+        // carries the current balance. Returns null both when the account does not
+        // exist and when the new name collides; AccountsController checks existence
+        // beforehand so it can tell the caller which of the two happened.
         public async Task<AccountReadDto?> RenameAccount(Guid ownerId, Guid accountId, AccountUpdateDto request)
         {
             var account = await OwnedBy(ownerId)
@@ -90,18 +102,17 @@ namespace backend.Services
         }
 
        
+        // Builds an account's statement, oldest first, accumulating a running balance
+        // over the ordered rows. Ownership is checked separately so "no such account"
+        // stays distinguishable from "account with no entries" — both would otherwise
+        // be an empty list. Rows are projected by AutoMapper's AccountProfile.
         public async Task<IReadOnlyList<AccountLedgerEntryDto>?> GetAccountLedger(Guid ownerId, Guid accountId)
         {
-            // Checked separately so "account has no entries" stays distinguishable
-            // from "no such account": both would otherwise be an empty list.
             if (!await OwnedBy(ownerId).AnyAsync(account => account.Id == accountId))
             {
                 return null;
             }
 
-            // ponytail: loads the whole history. A running balance depends on every
-            // earlier row, so paging this needs the opening balance fetched as a
-            // separate SUM. Do that if accounts ever get large.
             var ledger = await _appDbContext.Entries
                 .Where(entry => entry.AccountId == accountId && entry.Account.OwnerId == ownerId)
                 .OrderBy(entry => entry.Transaction.OccurredAt)
@@ -120,10 +131,11 @@ namespace backend.Services
             return ledger;
         }
 
+        // Splits every balance into the debit or credit column by its sign and totals
+        // both sides. Reuses GetAccounts instead of aggregating again, so the system
+        // holds one definition of "balance" and the two pages cannot disagree.
         public async Task<TrialBalanceDto> GetTrialBalance(Guid ownerId)
         {
-            // Reuses the listing, which already computes every balance in one query.
-            // A second aggregation here would be a second definition of "balance".
             var accounts = await GetAccounts(ownerId);
 
             var lines = accounts
@@ -149,15 +161,10 @@ namespace backend.Services
             };
         }
 
-        /// <summary>
-        /// Projects accounts with their balance as a correlated subquery, so the whole
-        /// list costs one statement. Expressed here rather than as a mapping rule
-        /// because Account does not own its entries: they belong to Transaction's
-        /// aggregate, and a navigation collection would say otherwise.
-        ///
-        /// The cast to decimal? is load-bearing: SQL SUM over no rows is NULL, so an
-        /// account with no entries would otherwise fail to materialise.
-        /// </summary>
+        // Projects accounts with their balance as a correlated subquery, keeping any
+        // listing to a single statement. The decimal? cast is load-bearing: SQL SUM
+        // over no rows is NULL, so an account with no entries would otherwise fail to
+        // materialise instead of reading 0.
         private IQueryable<AccountReadDto> WithBalance(IQueryable<Account> accounts) =>
             accounts.Select(account => new AccountReadDto
             {
@@ -170,6 +177,8 @@ namespace backend.Services
                     .Sum(entry => (decimal?)entry.Amount) ?? 0m
             });
 
+        // Scopes a query to one owner. Every read in this service starts here, so
+        // there is no path that can reach another user's accounts.
         private IQueryable<Account> OwnedBy(Guid ownerId) =>
             _appDbContext.Accounts.Where(account => account.OwnerId == ownerId);
     }

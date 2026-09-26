@@ -13,6 +13,12 @@ namespace backend.Data
         public DbSet<Transaction> Transactions { get; set; } = null!;
         public DbSet<Entry> Entries { get; set; } = null!;
 
+        // Declares the schema EF Core generates migrations from.
+        // Three things here are load-bearing rather than cosmetic: the unique indexes,
+        // which are what actually stop concurrent duplicates that the services'
+        // pre-checks can both pass; the check constraints, which hold whatever route
+        // a write arrives by; and citext, which makes names and emails compare
+        // case-insensitively in the database rather than in application code.
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

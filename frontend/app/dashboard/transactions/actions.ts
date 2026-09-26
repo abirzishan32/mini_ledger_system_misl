@@ -9,21 +9,7 @@ import {
   type TransactionFormState,
 } from "./form-state";
 
-/**
- * Posts one double-entry transaction as the signed-in user.
- *
- * Both sides are committed by the backend inside a single SaveChanges, so the
- * ledger can never hold a debit without its credit. Nothing is validated here:
- * the date, the amount's range, the 200-character description and the rule
- * that the two accounts must differ all live in TransactionWriteDto, and its
- * messages are passed through untouched.
- *
- * The idempotency key rides as a header rather than a body field because it
- * describes this delivery attempt, not the accounting event. If the response
- * to a posting is lost and the user submits again, the backend recognises the
- * key and returns the transaction it already wrote instead of writing a
- * second one. An empty key — no JavaScript — simply omits the header.
- */
+
 export async function postTransaction(
   _previous: TransactionFormState,
   formData: FormData,
@@ -40,8 +26,6 @@ export async function postTransaction(
     method: "POST",
     headers: idempotencyKey === "" ? {} : { "Idempotency-Key": idempotencyKey },
     body: JSON.stringify({
-      // The date input yields a calendar day. Pinning it to midnight UTC makes
-      // the instant explicit rather than leaving the kind to be inferred.
       occurredAt: occurredAt === "" ? null : `${occurredAt}T00:00:00Z`,
       description,
       reference,
@@ -66,15 +50,11 @@ export async function postTransaction(
     };
   }
 
-  // A posting moves balances, so the accounts page and the trial balance are
-  // stale too. One call for the whole dashboard subtree rather than three that
-  // have to be kept in step with the routes.
+
   revalidatePath("/dashboard", "layout");
 
   return {
     ...emptyTransactionFormState,
-    // Kept: entering a day's transactions means posting several with the same
-    // date, and retyping it each time is the friction this removes.
     occurredAt,
     postedId: result.data.id,
     postedDescription: result.data.description,

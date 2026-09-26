@@ -6,6 +6,10 @@ namespace backend.Profiles
 {
     public class TransactionProfile : Profile
     {
+        // Mapping rules for the ProjectTo queries in TransactionService.
+        // Entries are ordered by amount descending so the debit side reads first, the
+        // order a transaction is written in on paper. Each entry carries its account's
+        // name so a listing needs no second lookup per row.
         public TransactionProfile()
         {
             CreateMap<Transaction, TransactionReadDto>()

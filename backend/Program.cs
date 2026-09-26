@@ -16,8 +16,10 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Enums cross the wire as their names, not their ordinals: "Asset" rather than 0.
-// Self-describing for the client, and immune to the enum being reordered later.
+// Registers ValidateModelAttribute for every action, so no controller repeats the
+// ModelState check and none can forget it. Enums cross the wire as their names
+// rather than their ordinals — "Asset", not 0 — which is self-describing for the
+// client and survives the enum being reordered later.
 builder.Services.AddControllers(options => options.Filters.Add<ValidateModelAttribute>())
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -25,6 +27,9 @@ builder.Services.AddControllers(options => options.Filters.Add<ValidateModelAttr
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
+// Turns off the framework's automatic 400, which answers with a ProblemDetails
+// document. ValidateModelAttribute replaces it so validation failures come back in
+// the same ApiResponse shape as everything else.
 builder.Services.Configure<ApiBehaviorOptions>(options => options.SuppressModelStateInvalidFilter = true);
 
 builder.Services.AddSwaggerGen(options =>
@@ -48,6 +53,8 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 
+// Require throws on a missing value, so a misconfigured deployment fails at
+// startup by name instead of at the first query or the first token check.
 var connectionString = builder.Configuration.Require("ConnectionStrings:DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -56,6 +63,9 @@ builder.Services.AddScoped<ITransactionService, TransactionService>();
 
 var jwtKey = builder.Configuration.Require("AppSettings:Token");
 
+// Validates every bearer token AuthService.CreateToken issued: the signature
+// proves this server minted it, and issuer and audience reject one minted for
+// something else even if the signing key were ever shared.
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -76,6 +86,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 
+// Caps how many password checks run at once. BCrypt is deliberately slow, which
+// is what makes guessing impractical, and also what would let a flood of sign-ins
+// exhaust the server. Rejections answer with the same ApiResponse shape, so a busy
+// server is one more handled case for the client rather than a hung request.
 builder.Services.AddRateLimiter(options =>
 {
     options.AddConcurrencyLimiter(AuthController.BcryptPolicy, limiter =>

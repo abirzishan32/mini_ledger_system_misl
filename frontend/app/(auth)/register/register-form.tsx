@@ -35,12 +35,6 @@ export function RegisterForm() {
         </CardDescription>
       </CardHeader>
 
-      {/*
-        noValidate is deliberate. The browser would otherwise block submission
-        with its own messages, and the user would never see the ones declared on
-        UserWriteDto. The backend owns every rule; the form only collects input.
-        type="email" is kept for the mobile keyboard, not for its validation.
-      */}
       <form action={formAction} noValidate>
         <CardContent className="space-y-5">
           <FormAlert message={state.message} errors={state.errors} />

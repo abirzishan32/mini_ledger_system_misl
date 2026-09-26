@@ -34,17 +34,10 @@ export function TransactionForm({
     emptyTransactionFormState,
   );
 
-  // A key that stays the same across retries of one posting but is fresh for
-  // the next. Minted after mount, so the server and client agree on the first
-  // render; without JavaScript it stays empty and the action omits the header.
-  // It is replaced only once a posting succeeds, which is what makes a retry
-  // after a lost response return the original transaction instead of a twin.
+
   const [idempotencyKey, setIdempotencyKey] = useState("");
 
-  // The one effect that cannot become a render-phase comparison: generating
-  // the key during render would produce one value on the server and a different
-  // one in the browser, and the two renders have to agree. It is minted after
-  // mount instead, and the action omits the header while it is still empty.
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- SSR hydration
     setIdempotencyKey(crypto.randomUUID());
@@ -73,9 +66,7 @@ export function TransactionForm({
           </DialogDescription>
         </div>
 
-        {/* noValidate: TransactionWriteDto owns every rule, including the two
-          cross-field ones the browser could not express anyway — the accounts
-          must differ, and the date cannot be in the future. */}
+
         <form action={formAction} noValidate>
           <div className="mt-5 space-y-4">
             <FormAlert message={state.message} errors={state.errors} />

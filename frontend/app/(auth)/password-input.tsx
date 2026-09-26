@@ -6,10 +6,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "cn";
 
-/**
- * Password field with a reveal toggle. There is no password reset, so letting
- * people check what they typed is worth the one piece of client state.
- */
+
 export function PasswordInput({
   className,
   ...props

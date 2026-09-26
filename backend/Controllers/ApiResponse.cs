@@ -13,7 +13,9 @@ namespace backend.Controllers
         public int StatusCode { get; set; }
         public DateTime TimeStamp { get; set; }
 
-        // Create constructor for success response
+        // Shared by both factories below and stamps TimeStamp, so every response
+        // carries when it was built. Private, so the two named factories are the
+        // only way to construct one and the shape stays consistent.
         private ApiResponse(bool success, string message, T? data, int statusCode, List<String>? errors)
         {
             Success = success;
@@ -24,13 +26,16 @@ namespace backend.Controllers
             TimeStamp = DateTime.UtcNow;
         }
 
-        // static method for creating successful response
+        // Builds the success envelope every controller returns. Errors is left null,
+        // so a caller can branch on Success alone without inspecting the rest.
         public static ApiResponse<T> SuccessResponse(T data, int statusCode, string message = "")
         {
             return new ApiResponse<T>(true, message, data, statusCode, null);
         }
 
-        // static method for creating an error/failure response
+        // Builds the failure envelope. Used by the controllers, by
+        // ValidateModelAttribute for validation errors, and by the exception handler
+        // in Program.cs, so an unhandled fault looks like every other response.
         public static ApiResponse<T> ErrorResponse(string message, int statusCode, List<String>? errors = null)
         {
             return new ApiResponse<T>(false, message, default, statusCode, errors);

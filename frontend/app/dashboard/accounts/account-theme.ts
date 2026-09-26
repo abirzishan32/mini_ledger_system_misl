@@ -9,14 +9,7 @@ import {
 
 import type { AccountType } from "@/lib/account-types";
 
-/**
- * The look of one account type: an icon and a colour, used identically on the
- * group header, the rows inside it, and the options in the create form.
- *
- * Every class is written out in full rather than assembled from a colour name.
- * Tailwind reads this file as text to decide which styles to generate, so a
- * class built at runtime — `bg-${colour}-500` — would simply not exist.
- */
+
 export type AccountTheme = {
   icon: LucideIcon;
   /** Group header: the 4px left edge and a faint wash behind it. */

@@ -6,12 +6,15 @@ namespace backend.Profiles
 {
     public class AccountProfile : Profile
     {
+        // Mapping rules AccountService relies on.
+        // Entry to statement line pulls date, description and reference from the
+        // parent Transaction, and leaves RunningBalance alone: it depends on a row's
+        // position in an ordered sequence, which a per-row mapping cannot see, so
+        // GetAccountLedger fills it afterwards. AccountWriteDto to Account ignores
+        // the fields the server owns, so a client cannot set an id or an owner.
         public AccountProfile()
         {
 
-            // The running balance is deliberately absent: it depends on the position
-            // of a row within an ordered sequence, which a per-row mapping cannot see.
-            // It is filled once the ordered page has materialised.
             CreateMap<Entry, AccountLedgerEntryDto>()
                 .ForMember(dto => dto.OccurredAt,
                     options => options.MapFrom(entry => entry.Transaction.OccurredAt))

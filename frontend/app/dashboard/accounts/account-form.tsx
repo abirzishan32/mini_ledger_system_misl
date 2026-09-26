@@ -56,21 +56,15 @@ export function AccountForm() {
           </DialogDescription>
         </div>
 
-        {/* noValidate: AccountWriteDto owns every rule, so the browser must not
-          reject a value the server would have accepted, or accept one it would
-          not. One set of rules, in one place. */}
         <form action={formAction} noValidate>
           <div className="mt-5 space-y-4">
             <FormAlert message={state.message} errors={state.errors} />
 
-            {/* Stays mounted while empty so the confirmation is announced when it
-              appears, rather than being inserted silently. */}
+          
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
-                // Remount when the server echoes a value back, so the field picks
-                // up the new default. Base UI warns if defaultValue changes on a
-                // mounted uncontrolled field.
+
                 key={state.name}
                 id="name"
                 name="name"

@@ -2,13 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace backend.DTOs
 {
-    /// <summary>
-    /// One accounting event, expressed as the two accounts it moves value between.
-    ///
-    /// Direction is the thing to get right: the debit account is the one that
-    /// receives, the credit account is the one that gives. Buying supplies with cash
-    /// debits Office Expense and credits Cash.
-    /// </summary>
     public class TransactionWriteDto : IValidatableObject
     {
         private string _description = string.Empty;
@@ -48,9 +41,9 @@ namespace backend.DTOs
             ErrorMessage = "Amount must be greater than zero")]
         public decimal? Amount { get; set; }
 
-        /// <summary>
-        /// Cross-field rules, which no single attribute can express.
-        /// </summary>
+        // Cross-field rules, which no single attribute can express because each one
+        // reads more than one property. Run by the framework during model binding,
+        // and reported by ValidateModelAttribute alongside the attribute failures.
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             if (DebitAccountId.HasValue && DebitAccountId == CreditAccountId)

@@ -20,6 +20,10 @@ namespace backend.Controllers
             _authService = authService;
         }
 
+        // Creates a login and returns the new user without any secret fields.
+        // AuthService.RegisterUser returns null when the username or email is taken.
+        // Rate limited because registration hashes a password, which is deliberately
+        // slow and would otherwise let a flood of requests exhaust the server.
         [HttpPost("register")]
         [EnableRateLimiting(BcryptPolicy)]
         public async Task<ActionResult<ApiResponse<UserReadDto>>> Register([FromBody] UserWriteDto request)
@@ -35,6 +39,9 @@ namespace backend.Controllers
                 ApiResponse<UserReadDto>.SuccessResponse(user, StatusCodes.Status201Created, "User registered successfully"));
         }
 
+        // Verifies credentials and returns an access and refresh token pair.
+        // AuthService.LoginUser returns null for both an unknown user and a wrong
+        // password, and one message covers both so the reply reveals neither.
         [HttpPost("login")]
         [EnableRateLimiting(BcryptPolicy)]
         public async Task<ActionResult<ApiResponse<TokenResponseDto>>> Login([FromBody] LoginRequestDto request)
@@ -49,6 +56,9 @@ namespace backend.Controllers
             return Ok(ApiResponse<TokenResponseDto>.SuccessResponse(response, StatusCodes.Status200OK, "Login successful"));
         }
 
+        // Trades a refresh token for a fresh pair. AuthService.RefreshToken checks it
+        // against the hash stored on the user and its expiry; null means the token is
+        // spent, expired, or was revoked by signing out.
         [HttpPost("refresh-token")]
         public async Task<ActionResult<ApiResponse<TokenResponseDto>>> RefreshToken([FromBody] RefreshTokenRequestDto request)
         {
@@ -61,6 +71,9 @@ namespace backend.Controllers
             return Ok(ApiResponse<TokenResponseDto>.SuccessResponse(result, StatusCodes.Status200OK, "Token refreshed successfully"));
         }
 
+        // Ends the session. Reads the user id from the verified token, then
+        // AuthService.Logout clears the stored refresh token hash, which is what
+        // stops any copy of that token being used to renew.
         [HttpPost("logout")]
         [Authorize]
         public async Task<ActionResult<ApiResponse<string>>> Logout()
@@ -75,6 +88,9 @@ namespace backend.Controllers
             return Ok(ApiResponse<string>.SuccessResponse(string.Empty, StatusCodes.Status200OK, "Signed out successfully"));
         }
 
+        // Returns the signed-in username, read from the token's name claim.
+        // Nothing is fetched from the database: reaching this endpoint at all means
+        // the JWT middleware in Program.cs already validated the token.
         [HttpGet("me")]
         [Authorize]
         public ActionResult<ApiResponse<string>> Me()

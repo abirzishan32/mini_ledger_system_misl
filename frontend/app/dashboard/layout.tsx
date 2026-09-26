@@ -15,9 +15,6 @@ export default async function DashboardLayout({
     <div className="min-h-svh">
       <Sidebar username={username} />
 
-      {/* Padding tracks the rail's width over the same 300ms, so the content
-          is pushed aside rather than covered. Below md the rail is a drawer
-          and the only offset is the mobile bar's height. */}
       <div className="pt-14 transition-[padding] duration-300 ease-out md:pt-0 md:pl-[72px] rail-hover:md:pl-[260px]">
         <main className="mx-auto w-full max-w-5xl px-3 py-8 sm:px-5">
           {children}

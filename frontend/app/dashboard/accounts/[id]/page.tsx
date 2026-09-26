@@ -21,9 +21,7 @@ export default async function AccountStatementPage({
     getAccountLedger(id),
   ]);
 
-  // The backend scopes both reads to the caller, so another user's account is
-  // already a 404 there. Nothing is checked against the URL here, because an
-  // id in a URL is a claim, not a credential.
+
   if (account.statusCode === 404 || ledger.statusCode === 404) {
     notFound();
   }

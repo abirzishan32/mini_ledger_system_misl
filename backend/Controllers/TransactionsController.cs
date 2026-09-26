@@ -22,6 +22,9 @@ namespace backend.Controllers
             _transactionService = transactionService;
         }
 
+        // Returns one page of the caller's transactions, newest first.
+        // The Range attributes are enforced by ValidateModelAttribute before this
+        // runs; TransactionService does the counting, ordering and slicing.
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResult<TransactionReadDto>>>> GetTransactions(
             [FromQuery][Range(1, int.MaxValue, ErrorMessage = "Page must be 1 or greater")] int page = 1,
@@ -33,6 +36,9 @@ namespace backend.Controllers
                 transactions, StatusCodes.Status200OK, "Transactions retrieved"));
         }
 
+        // Returns one transaction with both its entries, scoped to the caller by
+        // TransactionService. Also the route CreatedAtAction points at after a
+        // successful post, so its name is referenced by CreateTransaction below.
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<ApiResponse<TransactionReadDto>>> GetTransaction(Guid id)
         {
@@ -48,6 +54,10 @@ namespace backend.Controllers
                 transaction, StatusCodes.Status200OK, "Transaction retrieved"));
         }
 
+        // Posts one double-entry transaction.
+        // Hands the owner id from the token and the optional Idempotency-Key header
+        // to TransactionService.CreateTransaction, which returns either the saved
+        // transaction or a refusal message such as insufficient funds.
         [HttpPost]
         public async Task<ActionResult<ApiResponse<TransactionReadDto>>> CreateTransaction(
             [FromBody] TransactionWriteDto request,

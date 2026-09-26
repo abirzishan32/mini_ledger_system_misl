@@ -22,20 +22,17 @@ namespace backend.Services
             _mapper = mapper;
         }
 
+        // Returns one page of the owner's transactions, newest first.
+        // Counts before slicing so the total describes the whole result, not the page.
+        // The offset is computed as long because (page - 1) * pageSize overflows int
+        // inside the range the controller advertises, and a negative OFFSET is
+        // rejected by PostgreSQL; a page past the end answers empty without querying.
         public async Task<PaginatedResult<TransactionReadDto>> GetTransactions(Guid ownerId, int page, int pageSize)
         {
             var owned = OwnedBy(ownerId);
 
-            // Counted before the page is taken, so the total describes the whole result
-            // rather than the slice. Both statements run against the same owner filter,
-            // so a client can never learn how many rows exist beyond its own.
             var totalCount = await owned.CountAsync();
 
-            // Computed as long, because (page - 1) * pageSize overflows int well
-            // before page reaches the maximum the endpoint advertises, and the
-            // negative offset that produces is rejected by the database. A page
-            // past the end is an empty page, not an error, and answering here
-            // saves the query as well.
             var skip = (long)(page - 1) * pageSize;
 
             if (skip >= totalCount)
@@ -65,6 +62,9 @@ namespace backend.Services
             };
         }
 
+        // Fetches one transaction with both its entries, scoped to the owner.
+        // Projected by AutoMapper's TransactionProfile. Also called at the end of
+        // CreateTransaction to read back what was actually stored.
         public async Task<TransactionReadDto?> GetTransaction(Guid ownerId, Guid transactionId)
         {
             return await OwnedBy(ownerId)
@@ -73,6 +73,13 @@ namespace backend.Services
                 .FirstOrDefaultAsync();
         }
 
+        // Posts one double-entry transaction, or refuses it with a reason.
+        // Order matters: settle the idempotency key first, then open a database
+        // transaction, confirm both accounts belong to the caller, and when spending
+        // from an Asset lock that account's row before reading its balance. The
+        // transaction and both entries are then written in one SaveChanges, so the
+        // ledger can never hold a debit without its credit.
+        // Returns the transaction, or an error message for the caller to show.
         public async Task<(TransactionReadDto? Transaction, string? Error)> CreateTransaction(
             Guid ownerId, TransactionWriteDto request, string? idempotencyKey)
         {
@@ -162,11 +169,17 @@ namespace backend.Services
             return (await GetTransaction(ownerId, transaction.Id), null);
         }
 
+        // Looks up a transaction already recorded under this key for this owner.
+        // Used twice: as the cheap pre-check that settles an ordinary retry, and to
+        // read back the winner's row after the unique index rejects a racing insert.
         private Task<TransactionReadDto?> FindByIdempotencyKey(Guid ownerId, string key) =>
             OwnedBy(ownerId)
                 .Where(transaction => transaction.IdempotencyKey == key)
                 .ProjectTo<TransactionReadDto>(_mapper.ConfigurationProvider)
                 .FirstOrDefaultAsync();
+        // Normalises an incoming date to UTC before it is stored.
+        // An unspecified kind is labelled UTC rather than converted, because the form
+        // sends midnight UTC for a calendar day and shifting it would move the day.
         private static DateTime AsUtc(DateTime value) => value.Kind switch
         {
             DateTimeKind.Utc => value,
@@ -175,6 +188,8 @@ namespace backend.Services
         };
 
 
+        // Scopes a query to one owner. Every read in this service starts here, so
+        // there is no path that can reach another user's transactions.
         private IQueryable<Transaction> OwnedBy(Guid ownerId) =>
             _appDbContext.Transactions.Where(transaction => transaction.OwnerId == ownerId);
     }
