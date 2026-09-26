@@ -13,10 +13,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 /**
  * The sidebar is one element, not two.
  *
- * On md and up it is a fixed rail whose width comes from a data attribute the
- * server renders from a cookie. Below md the same element slides in over the
- * page as a drawer. A separate mobile copy would mean maintaining the same
- * four links twice.
+ * On md and up it is a fixed rail that widens on hover. Below md the same
+ * element slides in over the page as a drawer. A separate mobile copy would
+ * mean maintaining the same four links twice.
  *
  * There is no pin button. The rail sits at 72px and widens to 260px while the
  * pointer is on it, and the content's padding follows in the same transition
@@ -29,10 +28,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export function Sidebar({ username }: { username?: string }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
-
-  // Close on navigation, so tapping a link on a phone does not leave the
-  // drawer covering the page it just opened.
-  useEffect(() => setDrawerOpen(false), [pathname]);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -102,6 +97,10 @@ export function Sidebar({ username }: { username?: string }) {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 title={label}
+                // Closed here rather than by watching the path: tapping a link
+                // is the event that should close the drawer, and handling it
+                // where it happens avoids the extra render an effect costs.
+                onClick={() => setDrawerOpen(false)}
                 className={cn(
                   "group/nav relative mx-2 my-1 flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                   active

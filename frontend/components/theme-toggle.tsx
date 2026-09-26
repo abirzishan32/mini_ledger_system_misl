@@ -19,6 +19,11 @@ export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
+  // Detecting that hydration has finished is what an effect is for: the server
+  // render has no resolved theme, so the switch must show its neutral state
+  // until the browser takes over. There is no render-phase form of "has this
+  // mounted yet" that does not lie on the first pass.
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount detection
   useEffect(() => setMounted(true), []);
 
   const dark = mounted && resolvedTheme === "dark";

@@ -75,12 +75,6 @@ namespace backend.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<AccountReadDto>>> CreateAccount([FromBody] AccountWriteDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponse<AccountReadDto>.ErrorResponse(
-                    "Validation failed", StatusCodes.Status400BadRequest, ModelState.ToErrorMessages()));
-            }
-
             var account = await _accountService.CreateAccount(User.GetUserId(), request);
 
             if (account == null)
@@ -97,12 +91,6 @@ namespace backend.Controllers
         [HttpPut("{id:guid}")]
         public async Task<ActionResult<ApiResponse<AccountReadDto>>> RenameAccount(Guid id, [FromBody] AccountUpdateDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponse<AccountReadDto>.ErrorResponse(
-                    "Validation failed", StatusCodes.Status400BadRequest, ModelState.ToErrorMessages()));
-            }
-
             var ownerId = User.GetUserId();
 
             // Checked separately so the two failures stay distinguishable: without it

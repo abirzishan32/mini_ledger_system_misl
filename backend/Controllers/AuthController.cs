@@ -24,11 +24,6 @@ namespace backend.Controllers
         [EnableRateLimiting(BcryptPolicy)]
         public async Task<ActionResult<ApiResponse<UserReadDto>>> Register([FromBody] UserWriteDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponse<UserReadDto>.ErrorResponse("Validation failed", StatusCodes.Status400BadRequest, GetModelStateErrors()));
-            }
-
             var user = await _authService.RegisterUser(request);
             if (user == null)
             {
@@ -44,11 +39,6 @@ namespace backend.Controllers
         [EnableRateLimiting(BcryptPolicy)]
         public async Task<ActionResult<ApiResponse<TokenResponseDto>>> Login([FromBody] LoginRequestDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponse<TokenResponseDto>.ErrorResponse("Validation failed", StatusCodes.Status400BadRequest, GetModelStateErrors()));
-            }
-
             var response = await _authService.LoginUser(request);
             if (response == null)
             {
@@ -62,11 +52,6 @@ namespace backend.Controllers
         [HttpPost("refresh-token")]
         public async Task<ActionResult<ApiResponse<TokenResponseDto>>> RefreshToken([FromBody] RefreshTokenRequestDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponse<TokenResponseDto>.ErrorResponse("Validation failed", StatusCodes.Status400BadRequest, GetModelStateErrors()));
-            }
-
             var result = await _authService.RefreshToken(request);
             if (result == null)
             {
@@ -97,11 +82,5 @@ namespace backend.Controllers
             var username = User.FindFirstValue(ClaimTypes.Name) ?? string.Empty;
             return Ok(ApiResponse<string>.SuccessResponse(username, StatusCodes.Status200OK, "You are authenticated"));
         }
-
-        private List<string> GetModelStateErrors() =>
-            ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage) ? "Invalid request body" : e.ErrorMessage)
-                .ToList();
     }
 }

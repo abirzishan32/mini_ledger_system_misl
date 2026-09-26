@@ -29,7 +29,12 @@ export default async function AccountStatementPage({
   }
 
   const lines = ledger.data ?? [];
-  const balance = account.data?.balance ?? 0;
+
+  // The two reads fail independently, so both are surfaced. Nothing below is
+  // rendered from a result that did not arrive: showing 0.00 for a balance the
+  // server never returned states a figure the ledger does not hold, which is
+  // worse than showing no figure at all.
+  const failures = [account, ledger].filter((result) => !result.success);
 
   return (
     <div className="space-y-6">
@@ -55,93 +60,91 @@ export default async function AccountStatementPage({
             </p>
           </div>
 
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">Balance</p>
-            <p className="font-mono text-lg tabular-nums">
-              {formatAmount(balance)}
-              <span className="ml-1.5 text-sm text-muted-foreground">
-                {balanceSide(balance)}
-              </span>
-            </p>
-          </div>
+          {account.data && (
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Balance</p>
+              <p className="font-mono text-lg tabular-nums">
+                {formatAmount(account.data.balance)}
+                <span className="ml-1.5 text-sm text-muted-foreground">
+                  {balanceSide(account.data.balance)}
+                </span>
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
       <FormAlert
-        message={ledger.success ? "" : ledger.message}
-        errors={ledger.errors ?? []}
+        message={failures[0]?.message ?? ""}
+        errors={failures.flatMap((result) => result.errors ?? [])}
       />
 
-      {lines.length === 0 ? (
-        <EmptyState title="Nothing posted to this account yet">
-          Entries appear here as soon as a transaction touches this account.
-        </EmptyState>
-      ) : (
-        // A real table, because the debit and credit columns are the point:
-        // which side a line landed on is what makes this a ledger rather than
-        // a list of amounts. Five columns do not fit a phone, so the table
-        // scrolls inside its frame instead of collapsing into a second layout
-        // that would have to be kept in step with this one.
-        <TableFrame>
-          <table className="w-full min-w-[34rem] text-sm">
-            <caption className="sr-only">
-              Statement for {account.data?.name}, oldest entry first
-            </caption>
-            <thead>
-              <tr className="border-b text-xs text-muted-foreground">
-                <Th>Date</Th>
-                <Th>Description</Th>
-                <Th align="right">Debit</Th>
-                <Th align="right">Credit</Th>
-                <Th align="right">Balance</Th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y">
-              {lines.map((line, index) => (
-                <tr
-                  key={`${line.transactionId}-${index}`}
-                  className="transition-colors hover:bg-muted/50"
-                >
-                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                    <time dateTime={line.occurredAt}>
-                      {formatDate(line.occurredAt)}
-                    </time>
-                  </td>
-                  <td className="px-4 py-3">
-                    {line.description}
-                    {line.reference !== null && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        · {line.reference}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums">
-                    {line.amount > 0 ? formatAmount(line.amount) : <Blank />}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums">
-                    {line.amount < 0 ? formatAmount(line.amount) : <Blank />}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums">
-                    {formatAmount(line.runningBalance)}
-                    <span className="ml-1.5 text-xs text-muted-foreground">
-                      {balanceSide(line.runningBalance)}
-                    </span>
-                  </td>
+      {ledger.success &&
+        (lines.length === 0 ? (
+          <EmptyState title="Nothing posted to this account yet">
+            Entries appear here as soon as a transaction touches this account.
+          </EmptyState>
+        ) : (
+          // A real table, because the debit and credit columns are the point:
+          // which side a line landed on is what makes this a ledger rather than
+          // a list of amounts. Five columns do not fit a phone, so the table
+          // scrolls inside its frame instead of collapsing into a second layout
+          // that would have to be kept in step with this one.
+          <TableFrame>
+            <table className="w-full min-w-[34rem] text-sm">
+              <caption className="sr-only">
+                Statement for {account.data?.name}, oldest entry first
+              </caption>
+              <thead>
+                <tr className="border-b text-xs text-muted-foreground">
+                  <Th>Date</Th>
+                  <Th>Description</Th>
+                  <Th align="right">Debit</Th>
+                  <Th align="right">Credit</Th>
+                  <Th align="right">Balance</Th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </TableFrame>
-      )}
+              </thead>
 
-      {lines.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          The balance column is accumulated over this order, oldest first. It is
-          derived on every read, never stored against an entry.
-        </p>
-      )}
+              <tbody className="divide-y">
+                {lines.map((line, index) => (
+                  <tr
+                    key={`${line.transactionId}-${index}`}
+                    className="transition-colors hover:bg-muted/50"
+                  >
+                    <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                      <time dateTime={line.occurredAt}>
+                        {formatDate(line.occurredAt)}
+                      </time>
+                    </td>
+                    <td className="px-4 py-3">
+                      {line.description}
+                      {line.reference !== null && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {line.reference}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums">
+                      {line.amount > 0 ? formatAmount(line.amount) : <Blank />}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums">
+                      {line.amount < 0 ? formatAmount(line.amount) : <Blank />}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums">
+                      {formatAmount(line.runningBalance)}
+                      <span className="ml-1.5 text-xs text-muted-foreground">
+                        {balanceSide(line.runningBalance)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableFrame>
+        ))}
+
+      
     </div>
   );
 }

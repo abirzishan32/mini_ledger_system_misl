@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
 
 import { postTransaction } from "./actions";
+import { useDialogClosedOnSuccess } from "@/lib/use-dialog";
 import { emptyTransactionFormState } from "./form-state";
 import { FormAlert } from "@/components/form-alert";
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from "@/lib/account-types";
@@ -40,20 +41,17 @@ export function TransactionForm({
   // after a lost response return the original transaction instead of a twin.
   const [idempotencyKey, setIdempotencyKey] = useState("");
 
+  // The one effect that cannot become a render-phase comparison: generating
+  // the key during render would produce one value on the server and a different
+  // one in the browser, and the two renders have to agree. It is minted after
+  // mount instead, and the action omits the header while it is still empty.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- SSR hydration
     setIdempotencyKey(crypto.randomUUID());
   }, [state.postedId]);
 
-  const [open, setOpen] = useState(false);
-
-  // Close once the server confirms the posting. Keyed on the posted id, which
-  // changes only on success — a rejection leaves the dialog open with the
-  // messages and every value still in place.
-  useEffect(() => {
-    if (state.postedId !== "") {
-      setOpen(false);
-    }
-  }, [state.postedId]);
+  // Keyed on the posted id, which changes only on success.
+  const [open, setOpen] = useDialogClosedOnSuccess(state.postedId);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

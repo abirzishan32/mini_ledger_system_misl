@@ -4,6 +4,7 @@ using System.Threading.RateLimiting;
 using backend.Controllers;
 using backend.Data;
 using backend.Extensions;
+using backend.Filters;
 using backend.Interfaces;
 using backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,7 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Enums cross the wire as their names, not their ordinals: "Asset" rather than 0.
 // Self-describing for the client, and immune to the enum being reordered later.
-builder.Services.AddControllers()
+builder.Services.AddControllers(options => options.Filters.Add<ValidateModelAttribute>())
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
@@ -99,6 +100,21 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly);
 
 var app = builder.Build();
+
+// Outermost, so it wraps every middleware below. Without it an unhandled
+// exception is the one response in the API that is not an ApiResponse, and in
+// development it would carry a stack trace to the browser. The exception is
+// still logged by the handler itself, which is where a developer should read
+// it. The message says nothing about the cause: what failed is not the
+// caller's business and naming it leaks implementation detail.
+app.UseExceptionHandler(handler => handler.Run(async context =>
+{
+    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+
+    await context.Response.WriteAsJsonAsync(ApiResponse<string>.ErrorResponse(
+        "Something went wrong on the server. Please try again.",
+        StatusCodes.Status500InternalServerError));
+}));
 
 // Swagger UI is the only OpenAPI surface here, and only in development.
 if (app.Environment.IsDevelopment())

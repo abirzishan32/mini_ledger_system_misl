@@ -31,10 +31,27 @@ namespace backend.Services
             // so a client can never learn how many rows exist beyond its own.
             var totalCount = await owned.CountAsync();
 
+            // Computed as long, because (page - 1) * pageSize overflows int well
+            // before page reaches the maximum the endpoint advertises, and the
+            // negative offset that produces is rejected by the database. A page
+            // past the end is an empty page, not an error, and answering here
+            // saves the query as well.
+            var skip = (long)(page - 1) * pageSize;
+
+            if (skip >= totalCount)
+            {
+                return new PaginatedResult<TransactionReadDto>
+                {
+                    TotalCount = totalCount,
+                    PageNumber = page,
+                    PageSize = pageSize
+                };
+            }
+
             var data = await owned
                 .OrderByDescending(transaction => transaction.OccurredAt)
                 .ThenByDescending(transaction => transaction.CreatedAt)
-                .Skip((page - 1) * pageSize)
+                .Skip((int)skip)
                 .Take(pageSize)
                 .ProjectTo<TransactionReadDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();

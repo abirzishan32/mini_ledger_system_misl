@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState } from "react";
 import { Loader2, Plus } from "lucide-react";
 
 import { createAccount } from "./actions";
+import { useDialogClosedOnSuccess } from "@/lib/use-dialog";
 import { emptyAccountFormState } from "./form-state";
 import { FormAlert } from "@/components/form-alert";
 import { ACCOUNT_THEMES } from "./account-theme";
@@ -33,16 +34,8 @@ export function AccountForm() {
     createAccount,
     emptyAccountFormState,
   );
-  const [open, setOpen] = useState(false);
-
-  // Close once the server confirms a new account. Keyed on the created name,
-  // which changes only on success — a rejected submission leaves the dialog
-  // open with the messages and the values still in place.
-  useEffect(() => {
-    if (state.created !== "") {
-      setOpen(false);
-    }
-  }, [state.created]);
+  // Keyed on the created name, which changes only on success.
+  const [open, setOpen] = useDialogClosedOnSuccess(state.created);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

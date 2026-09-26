@@ -27,12 +27,6 @@ namespace backend.Controllers
             [FromQuery][Range(1, int.MaxValue, ErrorMessage = "Page must be 1 or greater")] int page = 1,
             [FromQuery][Range(1, MaxPageSize, ErrorMessage = "Page size must be between 1 and 100")] int pageSize = DefaultPageSize)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponse<PaginatedResult<TransactionReadDto>>.ErrorResponse(
-                    "Validation failed", StatusCodes.Status400BadRequest, ModelState.ToErrorMessages()));
-            }
-
             var transactions = await _transactionService.GetTransactions(User.GetUserId(), page, pageSize);
 
             return Ok(ApiResponse<PaginatedResult<TransactionReadDto>>.SuccessResponse(
@@ -61,12 +55,6 @@ namespace backend.Controllers
             // delivery of the request, not the accounting event being recorded.
             [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey = null)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponse<TransactionReadDto>.ErrorResponse(
-                    "Validation failed", StatusCodes.Status400BadRequest, ModelState.ToErrorMessages()));
-            }
-
             var (transaction, error) = await _transactionService.CreateTransaction(
                 User.GetUserId(), request, idempotencyKey);
 
