@@ -1,10 +1,9 @@
 import { cn } from "cn"
 
-/**
- * The shared parts of the statement and trial-balance tables. Both had the
- * same frame, the same header-cell classes repeated nine times between them,
- * and their own identical copy of Blank.
- */
+// The shared parts of the statement and trial-balance tables, which had the same
+// frame, the same header-cell classes nine times between them, and their own
+// identical copy of Blank. The frame scrolls horizontally rather than collapsing
+// into a second mobile layout that would have to be kept in step.
 function TableFrame({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -17,6 +16,7 @@ function TableFrame({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+// A header cell, left aligned unless a figure column asks for right.
 function Th({
   align = "left",
   className,
@@ -35,7 +35,8 @@ function Th({
   )
 }
 
-/** An em dash for a column this row does not sit in — empty, not zero. */
+// An em dash for a column this row does not sit in: empty, not zero. Hidden from
+// screen readers, which should hear the cell as blank rather than as a dash.
 function Blank() {
   return (
     <span className="text-muted-foreground" aria-hidden="true">

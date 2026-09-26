@@ -15,6 +15,10 @@ import { getAccounts } from "@/lib/ledger";
 
 export const metadata: Metadata = { title: "Accounts" };
 
+// The chart of accounts, grouped by type via groupByType and coloured by
+// ACCOUNT_THEMES, with each account's derived balance.
+// Read on the server through lib/ledger: the browser never learns the backend's
+// address and never holds a token, it receives finished HTML for its own rows.
 export default async function AccountsPage() {
   // Read on the server. The browser never learns the backend's address and
   // never holds a token: it receives finished HTML for the rows this user owns.

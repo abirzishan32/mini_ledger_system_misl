@@ -19,6 +19,10 @@ export const metadata: Metadata = {
     "Track accounts, record debit and credit entries, and follow running balances.",
 };
 
+// The document shell: fonts, metadata, and the Providers wrapper that gives
+// next-themes to everything below. suppressHydrationWarning because
+// next-themes writes the theme class on <html> before React hydrates, which
+// would otherwise be reported as a server/client mismatch.
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html

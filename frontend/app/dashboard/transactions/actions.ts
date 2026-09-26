@@ -10,6 +10,13 @@ import {
 } from "./form-state";
 
 
+// Posts one double-entry transaction through apiFetchAuthed.
+// The idempotency key rides as a header rather than a body field because it
+// describes this delivery attempt, not the accounting event: if the reply is
+// lost and the user submits again, the backend recognises the key and returns
+// the transaction it already wrote. An empty key means no header at all.
+// On success it revalidates the whole dashboard, since a posting moves balances
+// the accounts page and trial balance also display.
 export async function postTransaction(
   _previous: TransactionFormState,
   formData: FormData,
@@ -61,6 +68,7 @@ export async function postTransaction(
   };
 }
 
+// Pulls one field out of a FormData as a string; anything missing reads as "".
 function readField(formData: FormData, name: string): string {
   const value = formData.get(name);
   return typeof value === "string" ? value : "";

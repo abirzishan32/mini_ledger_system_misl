@@ -7,6 +7,10 @@ import { Input } from "@/components/ui/input";
 import { cn } from "cn";
 
 
+// Password field with a reveal toggle. There is no password reset in this app,
+// so letting people check what they typed is worth the one piece of client
+// state. The toggle is tabIndex={-1} so it does not sit between the field and
+// the submit button in the tab order.
 export function PasswordInput({
   className,
   ...props

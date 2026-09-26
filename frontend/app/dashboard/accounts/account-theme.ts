@@ -12,20 +12,25 @@ import type { AccountType } from "@/lib/account-types";
 
 export type AccountTheme = {
   icon: LucideIcon;
-  /** Group header: the 4px left edge and a faint wash behind it. */
+  // Group header: the 4px left edge and a faint wash behind it.
   header: string;
-  /** The header icon, and the same icon in the type picker. */
+  // The header icon, and the same icon in the type picker.
   iconColor: string;
-  /** The count beside the group heading. */
+  // The count beside the group heading.
   badge: string;
-  /** The marker beside an account name. */
+  // The marker beside an account name.
   dot: string;
-  /** The balance figure. Muted enough to stay comfortable to read down a column. */
+  // The balance figure. Muted enough to stay comfortable to read down a column.
   balance: string;
-  /** Row hover, kept very light so the name stays the thing you notice. */
+  // Row hover, kept very light so the name stays the thing you notice.
   row: string;
 };
 
+// One theme per account type, as complete Tailwind class strings rather than
+// pieces joined at runtime: Tailwind only ships classes it can see written out,
+// so a composed name would be missing from the build. Used by the accounts page,
+// the trial balance and the type picker in account-form, which is what makes the
+// five groups recognisable by the same colour everywhere.
 export const ACCOUNT_THEMES: Record<AccountType, AccountTheme> = {
   Asset: {
     icon: Wallet,

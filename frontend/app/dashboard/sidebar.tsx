@@ -10,21 +10,15 @@ import { signOut as signOutAction } from "@/app/(auth)/actions";
 import { isActive, NAV_LINKS } from "./nav-links";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-/**
- * The sidebar is one element, not two.
- *
- * On md and up it is a fixed rail that widens on hover. Below md the same
- * element slides in over the page as a drawer. A separate mobile copy would
- * mean maintaining the same four links twice.
- *
- * There is no pin button. The rail sits at 72px and widens to 260px while the
- * pointer is on it, and the content's padding follows in the same transition
- * so it is pushed rather than covered.
- *
- * Expanding is delayed by 150ms and collapsing is not: brushing the left edge
- * on the way somewhere else should not reflow the page, but leaving should
- * hand the space back immediately.
- */
+// The whole navigation: one element, not two. On md and up a fixed rail that
+// widens from 72px to 260px on hover, with the content's padding following in
+// the same transition so it is pushed rather than covered; below md the same
+// element slides in over the page as a drawer. A separate mobile copy would
+// mean maintaining the same four links twice.
+// Renders NAV_LINKS from nav-links.ts, the ThemeToggle, and the signOut action
+// from (auth)/actions as a plain form so it works without JavaScript.
+// Widening is delayed 150ms and collapsing is not: brushing the edge on the way
+// somewhere else should not reflow the page, but leaving returns it at once.
 export function Sidebar({ username }: { username?: string }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -162,6 +156,8 @@ export function Sidebar({ username }: { username?: string }) {
   );
 }
 
+// The app mark and name at the top of the rail. The name is hidden while the
+// rail is narrow, leaving the icon as the only thing at 72px.
 function Brand() {
   return (
     <>
@@ -175,6 +171,8 @@ function Brand() {
   );
 }
 
+// Two letters for the avatar: the first letter of each of the first two parts
+// when the name has separators, otherwise the first two characters.
 function initials(username?: string): string {
   if (!username) return "?";
   const parts = username.split(/[.\s_-]+/).filter(Boolean);

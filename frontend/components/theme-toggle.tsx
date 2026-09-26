@@ -6,15 +6,12 @@ import { useTheme } from "next-themes";
 
 import { cn } from "cn";
 
-/**
- * A switch, not a button: it has two states and shows which one it is in, so
- * role="switch" with aria-checked is what a screen reader should hear.
- *
- * The icon lives in the thumb so the control always shows the theme you are
- * in. Nothing renders until mount — before hydration the server cannot know
- * what the browser will resolve "system" to, and guessing is wrong half the
- * time.
- */
+// The light/dark control at the bottom of the sidebar. Reads and writes through
+// next-themes, which the Providers component sets up in app/providers.tsx.
+// A switch rather than a button: it has two states and shows which it is in, so
+// role="switch" with aria-checked is what a screen reader should hear.
+// The icon sits in the thumb, and nothing renders until mount — before hydration
+// the server cannot know what the browser will resolve "system" to.
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);

@@ -22,6 +22,12 @@ export const metadata: Metadata = { title: "Transactions" };
 
 const PAGE_SIZE = 20;
 
+// The transaction history, one page at a time, newest first.
+// Fetches the page and the account list together through lib/ledger; the
+// accounts are needed for the form's pickers anyway, so colouring each side by
+// account type costs one Map rather than a second request.
+// The page number comes from the URL, so a page is shareable and survives a
+// reload. Which rows it contains is decided entirely by the backend.
 export default async function TransactionsPage({
   searchParams,
 }: PageProps<"/dashboard/transactions">) {
@@ -133,6 +139,8 @@ export default async function TransactionsPage({
   );
 }
 
+// One transaction: its date and description, then both sides of the entry.
+// Whole row is a single unit so the debit and credit read as one event.
 function TransactionRow({
   transaction,
   typeById,
@@ -177,7 +185,8 @@ function TransactionRow({
   );
 }
 
-/** One side of a transaction: its label, then each account with its type colour. */
+// One side of a transaction — its Dr or Cr label, then each account involved,
+// tinted by ACCOUNT_THEMES so the type is recognisable without reading it.
 function Side({
   label,
   entries,
@@ -221,12 +230,10 @@ function Side({
   );
 }
 
-/**
- * A link, not a button with an onClick: the page number lives in the URL, so
- * a page is shareable, survives a reload, and needs no JavaScript to change.
- * The inert ends are real disabled buttons, which is the one case here that
- * genuinely is not a navigation.
- */
+// Previous/Next. A link rather than a button with an onClick, because the page
+// number lives in the URL: a page is then shareable, survives a reload, and
+// needs no JavaScript to change. The inert ends render as real disabled buttons,
+// which is the one case here that genuinely is not a navigation.
 function PagerLink({
   page,
   disabled,

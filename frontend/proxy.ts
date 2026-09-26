@@ -12,14 +12,13 @@ import {
 const AUTH_PATHS = ["/login", "/register"];
 const PROTECTED_PREFIX = "/dashboard";
 
-/**
- * Routes traffic based on the session cookies and renews an expired access
- * token before the page renders.
- *
- * This is a convenience layer, not the security boundary. Server Functions are
- * POSTs to the route that declares them, so a matcher change could silently
- * drop coverage. Every page and action checks the session itself as well.
- */
+// Runs before every matched request: sends signed-out visitors to /login, sends
+// signed-in ones away from the auth pages, and renews an access token that is
+// about to expire so the page below never sees a dead one.
+// Uses readAccessTokenClaims and isAccessTokenExpired from lib/auth to decide,
+// and refreshTokens from lib/api to renew.
+// A convenience layer, not the security boundary: it only runs on the paths in
+// the matcher below, so every page and action checks the session itself as well.
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const onAuthPath = AUTH_PATHS.includes(pathname);
@@ -81,10 +80,14 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
+// Builds a redirect against the incoming request's origin, so it works whatever
+// host or port the app is served on.
 function redirectTo(path: string, request: NextRequest) {
   return NextResponse.redirect(new URL(path, request.url));
 }
 
+// Only these paths run through proxy(). Anything outside the matcher is
+// unguarded here, which is why the pages repeat the session check.
 export const config = {
   matcher: ["/dashboard/:path*", "/login", "/register"],
 };

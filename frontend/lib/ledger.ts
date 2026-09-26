@@ -7,18 +7,16 @@ import type { AccountType } from "@/lib/account-types";
 // enum itself stays in a module the browser may also read.
 export type { AccountType } from "@/lib/account-types";
 
-/**
- * Mirrors the backend's ledger DTOs. Hand-written rather than generated: five
- * small shapes are cheaper to read than a codegen step, and a mismatch shows up
- * immediately as a type error at the point of use.
- */
+// The shapes below mirror the backend's ledger DTOs. Hand-written rather than
+// generated: five small types are cheaper to read than a codegen step, and a
+// mismatch shows up immediately as a type error at the point of use.
 
 export type Account = {
   id: string;
   name: string;
   type: AccountType;
   createdAt: string;
-  /** Signed, debit-positive. Credit-normal types read negative here. */
+  // Signed, debit-positive. Credit-normal types read negative here.
   balance: number;
 };
 
@@ -54,12 +52,10 @@ export type TrialBalanceLine = {
   credit: number;
 };
 
-/**
- * Mirrors PaginatedResult<T>. The page is decided and sliced by the backend; the
- * frontend only asks for one and reads the totals back. Slicing a full list in
- * the browser would mean the server had already sent every row, which is both
- * slower and a disclosure the pager was supposed to prevent.
- */
+// Mirrors PaginatedResult<T>. The page is chosen and sliced by the backend; the
+// frontend only asks for one and reads the totals back. Slicing a full list here
+// would mean the server had already sent every row, which is both slower and the
+// disclosure the pager exists to prevent.
 export type Paginated<T> = {
   data: T[];
   totalCount: number;
@@ -78,18 +74,30 @@ export type TrialBalance = {
 // Every read goes through apiFetchAuthed, so none of them can reach the backend
 // without the caller's own token. There is no variant that takes a user id.
 
+// Every read below goes through apiFetchAuthed, so none can reach the backend
+// without the caller's own token, and none takes a user id to ask on behalf of
+// someone else. Each returns the backend's envelope for the page to unwrap.
 export const getAccounts = (): Promise<ApiResponse<Account[]>> =>
   apiFetchAuthed<Account[]>("/api/accounts");
 
+// GET /api/accounts/{id} — one account with its balance. A 404 comes back in
+// the envelope, which the statement page turns into notFound().
 export const getAccount = (id: string): Promise<ApiResponse<Account>> =>
   apiFetchAuthed<Account>(`/api/accounts/${id}`);
 
+// GET /api/accounts/{id}/entries — that account's statement, oldest first,
+// with the running balance the backend accumulated over that order.
 export const getAccountLedger = (id: string): Promise<ApiResponse<LedgerLine[]>> =>
   apiFetchAuthed<LedgerLine[]>(`/api/accounts/${id}/entries`);
 
+// GET /api/accounts/trial-balance — every account split into a debit or credit
+// column, with both totals and whether they agree. Used by the trial balance
+// page and by the overview tile, which reads the account count from its lines.
 export const getTrialBalance = (): Promise<ApiResponse<TrialBalance>> =>
   apiFetchAuthed<TrialBalance>("/api/accounts/trial-balance");
 
+// GET /api/transactions — one page of history, newest first. Page and size go
+// to the backend, which does the counting and slicing; nothing is sliced here.
 export const getTransactions = (
   page = 1,
   pageSize = 20,

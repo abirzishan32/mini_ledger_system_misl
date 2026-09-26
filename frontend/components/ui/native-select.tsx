@@ -1,14 +1,11 @@
 import * as React from "react"
 import { cn } from "cn"
 
-/**
- * A styled native <select>, not a listbox rebuilt out of divs.
- *
- * The platform control is already keyboard operable, already announces itself
- * to a screen reader, and already opens as a wheel on iOS and a dialog on
- * Android. Restyling it is the whole job; rebuilding it would mean owning
- * focus management and typeahead to arrive back where we started.
- */
+// A styled native <select>, not a listbox rebuilt out of divs. The platform
+// control is already keyboard operable, already announces itself to a screen
+// reader, and already opens as a wheel on iOS and a dialog on Android.
+// Restyling it is the whole job; rebuilding it would mean owning focus
+// management and typeahead to arrive back where we started.
 function NativeSelect({ className, ...props }: React.ComponentProps<"select">) {
   return (
     <select

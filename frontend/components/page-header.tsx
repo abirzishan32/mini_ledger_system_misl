@@ -1,3 +1,6 @@
+// A page title with optional supporting text and one action on the right.
+// Used by all four dashboard pages; the action slot is where the New account and
+// Post transaction dialog triggers sit.
 export function PageHeader({
   title,
   children,

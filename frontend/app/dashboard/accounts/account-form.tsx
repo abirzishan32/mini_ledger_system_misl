@@ -29,6 +29,10 @@ import {
 } from "@/components/ui/select";
 import { cn } from "cn";
 
+// The new-account dialog, behind a button in the page header rather than a form
+// holding permanent space: adding an account is a setup-time action.
+// Drives the createAccount action through useActionState, and
+// useDialogClosedOnSuccess closes it only once the server confirms the name.
 export function AccountForm() {
   const [state, formAction, pending] = useActionState(
     createAccount,

@@ -1,6 +1,10 @@
 import { Sidebar } from "./sidebar";
 import { getSession, readAccessTokenClaims } from "@/lib/auth";
 
+// Wraps every dashboard page with the sidebar. Reads the username from the
+// access token's claims rather than asking the backend, since the token is
+// already in hand. The content's left padding tracks the rail's width over the
+// same 300ms, so hovering the rail pushes the page rather than covering it.
 export default async function DashboardLayout({
   children,
 }: {

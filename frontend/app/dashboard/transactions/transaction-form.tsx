@@ -21,12 +21,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 
+// The post-a-transaction dialog. Drives the postTransaction action through
+// useActionState, and useDialogClosedOnSuccess closes it only once the server
+// confirms, so a rejection keeps every typed value in place.
+// Holds the idempotency key for this attempt: it is minted after mount and
+// replaced only on success, which is what makes a retry after a lost reply
+// return the original transaction instead of writing a second one.
 export function TransactionForm({
   accounts,
   today,
 }: {
   accounts: Account[];
-  /** Resolved on the server so the first render matches the hydration. */
+  // Resolved on the server so the first render matches the hydration.
   today: string;
 }) {
   const [state, formAction, pending] = useActionState(
@@ -171,6 +177,8 @@ export function TransactionForm({
   );
 }
 
+// A labelled form row. The label is tied to the control by id, so clicking it
+// focuses the field and a screen reader announces the two together.
 function Field({
   id,
   label,
@@ -200,11 +208,10 @@ function Field({
   );
 }
 
-/**
- * Grouped by type, because a chart of accounts is read that way and an
- * unsorted list of a dozen names is where a posting goes to the wrong side.
- * optgroup is native, so the grouping survives into the platform's own picker.
- */
+// The debit and credit account pickers, grouped by type with groupByType from
+// lib/account-types. A chart of accounts is read that way, and an unsorted list
+// of a dozen names is where a posting goes to the wrong side. optgroup is
+// native, so the grouping survives into the platform's own picker on a phone.
 function AccountOptions({
   id,
   accounts,

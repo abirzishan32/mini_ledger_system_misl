@@ -5,18 +5,13 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "cn"
 
-/**
- * A listbox built from Base UI's Select.
- *
- * The native <select> next door in native-select.tsx is still the better
- * control for a plain list of words, and it stays in use elsewhere. This one
- * exists for the single case the native element cannot cover: options that
- * carry an icon and a colour. A browser will not render anything but text
- * inside an <option>, so there is no styling trick that gets there.
- *
- * Root takes a `name`, so it posts its value with the surrounding form exactly
- * as the native element would, and the server reads it the same way.
- */
+// A listbox built from Base UI's Select, used only by the account type picker.
+// The native <select> in native-select.tsx is still the better control for a
+// plain list of words and stays in use elsewhere. This exists for the one case
+// it cannot cover: options carrying an icon and a colour, which a browser will
+// not render inside an <option> at all.
+// Root takes a name, so it posts its value with the surrounding form exactly as
+// the native element would, and the server reads it the same way.
 function Select(props: React.ComponentProps<typeof SelectPrimitive.Root>) {
   return <SelectPrimitive.Root data-slot="select" {...props} />
 }

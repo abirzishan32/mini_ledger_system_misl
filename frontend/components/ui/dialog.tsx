@@ -5,16 +5,12 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { X } from "lucide-react"
 import { cn } from "cn"
 
-/**
- * A modal dialog over Base UI.
- *
- * Base UI owns the parts that are tedious and easy to get wrong: the focus
- * trap, returning focus to the trigger on close, Escape, the inert background,
- * and the aria wiring between trigger, title and description.
- *
- * The popup is not kept mounted, so closing it discards the form inside and
- * the next open starts clean.
- */
+// A modal dialog over Base UI, used by account-form and transaction-form.
+// Base UI owns the parts that are tedious and easy to get wrong: the focus trap,
+// returning focus to the trigger on close, Escape, the inert background, and the
+// aria wiring between trigger, title and description.
+// The popup is not kept mounted, so closing discards the form inside and the
+// next open starts clean.
 function Dialog(props: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root {...props} />
 }
@@ -23,6 +19,9 @@ function DialogTrigger(props: React.ComponentProps<typeof DialogPrimitive.Trigge
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
 }
 
+// Composes the three parts of an open dialog: the backdrop, the centred popup,
+// and the close button in its corner. Escape and clicking the backdrop are
+// handled by Base UI, so neither is wired up here.
 function DialogContent({
   className,
   children,

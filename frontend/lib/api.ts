@@ -4,10 +4,8 @@ import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth";
 
-/**
- * Mirrors ApiResponse<T> from the ASP.NET backend. Every endpoint returns this
- * envelope for both success and failure, so callers only ever handle one shape.
- */
+// Mirrors ApiResponse<T> from the ASP.NET backend. Every endpoint returns this
+// envelope for both success and failure, so callers only ever handle one shape.
 export type ApiResponse<T> = {
   success: boolean;
   message: string;
@@ -29,6 +27,9 @@ export type UserRead = {
   createdAt: string;
 };
 
+// Reads API_BASE_URL and strips any trailing slash so callers can pass paths
+// beginning with "/". Throws rather than defaulting: a missing value would
+// otherwise surface later as every request failing for no stated reason.
 function baseUrl(): string {
   const configured = process.env.API_BASE_URL;
 
@@ -41,11 +42,11 @@ function baseUrl(): string {
   return configured.replace(/\/+$/, "");
 }
 
-/**
- * Calls the backend from the server only. Importing this module from a client
- * component is a build error, which is what keeps API_BASE_URL and the bearer
- * token out of the browser bundle.
- */
+// Calls the ASP.NET backend and always returns an ApiResponse, never throws.
+// A dead backend and a non-envelope body are both converted by failure() below,
+// so callers need one branch rather than a try/catch as well. The "server-only"
+// import at the top makes importing this from a client component a build error,
+// which is what keeps API_BASE_URL and the bearer token out of the browser.
 export async function apiFetch<T>(
   path: string,
   init: RequestInit = {},
@@ -78,17 +79,11 @@ export async function apiFetch<T>(
   );
 }
 
-/**
- * Calls the backend as the signed-in user.
- *
- * The session is read here rather than passed in, so a caller cannot supply a
- * different user's identity: the only identity available is the one in this
- * request's HttpOnly cookie, which the browser cannot read or forge.
- *
- * Both failure paths redirect rather than returning, so a page cannot forget to
- * handle them. proxy.ts has already tried to refresh an expired token before
- * this runs, so a 401 here means the session is genuinely dead.
- */
+// Calls the backend as the signed-in user, attaching the access token from the
+// cookie that getSession reads out of lib/auth.
+// There is deliberately no user-id parameter: the identity comes from this
+// request's own HttpOnly cookie, so no caller can ask on someone else's behalf.
+// Both failure paths redirect rather than return, so a page cannot forget them.
 export async function apiFetchAuthed<T>(
   path: string,
   init: RequestInit = {},
@@ -114,10 +109,10 @@ export async function apiFetchAuthed<T>(
   return response;
 }
 
-/**
- * Trades a refresh token for a new pair. The backend identifies the session by
- * user id as well as token, and the id comes from the access token's `sub`.
- */
+// Trades a refresh token for a fresh pair. Called only by proxy.ts, before a
+// page renders. The user id is sent alongside the token because the token itself
+// carries no information; proxy.ts reads that id out of the expiring access
+// token's sub claim.
 export async function refreshTokens(
   userId: string,
   refreshToken: string,
@@ -128,6 +123,8 @@ export async function refreshTokens(
   });
 }
 
+// Builds the same envelope shape the backend returns, for failures that never
+// reached it. Keeping one shape is what lets every caller handle errors once.
 function failure<T>(statusCode: number, message: string): ApiResponse<T> {
   return {
     success: false,

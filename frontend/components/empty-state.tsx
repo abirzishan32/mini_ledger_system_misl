@@ -1,6 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 
 
+// The "nothing here yet" panel, with an optional icon and action.
+// titleAs exists because this is usually a paragraph inside a page that already
+// has an h1, but the not-found page uses it as the heading itself.
 export function EmptyState({
   icon: Icon,
   title,

@@ -14,6 +14,10 @@ import { getTrialBalance } from "@/lib/ledger";
 
 export const metadata: Metadata = { title: "Trial balance" };
 
+// The trial balance: every account's balance in the column its side belongs to,
+// grouped the same way as the accounts page so the two read as one chart.
+// The backend does the splitting and totalling; this renders it and adds the
+// per-group subtotals. The two totals agreeing is the ledger checking itself.
 export default async function TrialBalancePage() {
   const result = await getTrialBalance();
   const trialBalance = result.data;

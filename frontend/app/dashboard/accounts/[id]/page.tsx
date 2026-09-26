@@ -11,6 +11,12 @@ import { getAccount, getAccountLedger } from "@/lib/ledger";
 
 export const metadata: Metadata = { title: "Account statement" };
 
+// One account's statement: every entry against it, oldest first, with the
+// running balance the backend accumulated over that order.
+// Fetches the account and its ledger together through lib/ledger. Either can
+// fail on its own, so both failures are surfaced and neither the balance nor the
+// empty state is rendered from a read that did not arrive — showing 0.00 for an
+// unknown balance would state a figure the ledger does not hold.
 export default async function AccountStatementPage({
   params,
 }: PageProps<"/dashboard/accounts/[id]">) {

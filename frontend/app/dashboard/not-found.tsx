@@ -6,14 +6,11 @@ import { cn } from "cn";
 import { EmptyState } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
 
-/**
- * Rendered inside the dashboard layout, so a missing account still leaves the
- * navigation in place instead of dropping the user on a bare error screen.
- *
- * The wording is deliberately the same whether the account does not exist or
- * belongs to somebody else: telling the two apart would turn this page into a
- * way to test which ids are real.
- */
+// Shown when notFound() is called inside the dashboard, which the account
+// statement page does on a 404. Rendered inside the dashboard layout, so the
+// sidebar stays in place rather than dropping the user on a bare error screen.
+// The wording is the same whether the account is missing or belongs to someone
+// else: telling the two apart would make this a way to test which ids are real.
 export default function DashboardNotFound() {
   return (
     <EmptyState

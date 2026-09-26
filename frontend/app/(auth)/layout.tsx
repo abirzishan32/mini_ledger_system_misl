@@ -1,5 +1,8 @@
 import { Wallet } from "lucide-react";
 
+// Frame shared by the sign-in and create-account pages: the app mark and a
+// centred column. Separate from the dashboard layout, which has the sidebar and
+// would need a session these pages do not have.
 export default function AuthLayout({
   children,
 }: {

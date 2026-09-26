@@ -2,10 +2,10 @@ import { CircleAlert } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-/**
- * The live region stays mounted even when empty, so screen readers announce a
- * failure that appears after submission rather than silently inserting it.
- */
+// Renders the message and per-rule errors an action returned, or nothing.
+// The live region stays mounted even while empty, so a screen reader announces a
+// failure that appears after submission instead of it being inserted silently.
+// Used by every form and by the pages, which pass the backend's envelope through.
 export function FormAlert({
   message,
   errors,

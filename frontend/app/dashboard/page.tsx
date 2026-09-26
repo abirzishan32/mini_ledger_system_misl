@@ -10,6 +10,11 @@ import { getTransactions, getTrialBalance } from "@/lib/ledger";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
+// The overview: three tiles linking to the other sections.
+// Fetches in parallel through lib/ledger. The trial balance carries one line per
+// account, so it answers how many accounts exist as well and no separate request
+// is needed; the transaction page asks for the smallest page the API will serve
+// because only its total is read.
 export default async function DashboardPage() {
   const [me, transactions, trialBalance] = await Promise.all([
     apiFetchAuthed<string>("/api/auth/me"),
@@ -64,6 +69,7 @@ export default async function DashboardPage() {
   );
 }
 
+// One overview tile: a label, a figure and a hint, linking to that section.
 function Tile({
   href,
   label,

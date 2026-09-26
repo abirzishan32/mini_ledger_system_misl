@@ -20,6 +20,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// The create-account form. Drives the register action, which creates the login
+// and signs straight in, so a success ends in a redirect rather than a message.
+// noValidate for the same reason as the sign-in form: UserWriteDto owns the
+// rules. type="email" is kept for the mobile keyboard, not for its validation.
 export function RegisterForm() {
   const [state, formAction, pending] = useActionState(
     register,

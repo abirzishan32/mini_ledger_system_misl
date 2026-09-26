@@ -20,6 +20,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// The sign-in form. Drives the login action through useActionState; on success
+// the action redirects, so there is no success state to render here.
+// noValidate is deliberate: LoginRequestDto on the backend owns every rule, so
+// the browser must not reject a value the server would accept, or the reverse.
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(
     login,
